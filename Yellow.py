@@ -135,6 +135,7 @@ class CutScene1 (Screen):
         self._target_x = None
         self._current_x = None
 
+
     def on_enter(self):
         # compute positions once we have a display surface
         surf = pygame.display.get_surface()
