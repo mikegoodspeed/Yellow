@@ -120,7 +120,7 @@ class CutScene1 (Screen):
 
         # small yellow reveal circle (drawn first, so red covers it until moved)
         self.yellow_radius = 18
-        self.yellow_color = (255, 215, 64) # Golden yellow
+        self.yellow_color = (255, 215, 64)  # Golden yellow
 
         # timing/motion state for red movement
         self.wait_time = 5.0       # seconds to wait before moving
@@ -130,35 +130,35 @@ class CutScene1 (Screen):
         self._moving = False
         self._finished = False     # stop repeating after done
 
-        # positions (initialized on_enter)
         self._start_x = None
         self._target_x = None
         self._current_x = None
 
-        # blue appearance / fade state
-        # make blue the same size as red
         self.blue_radius = self.radius
         self.blue_color_rgb = (50, 100, 255)  # blue base color
         self.blue_wait_after_red = 3.0        # wait after red finished
         self.blue_fade_duration = 2.0         # fade-in duration
+        self.blue_move_duration = 3.0         # move duration for blue
         self._blue_wait_elapsed = 0.0
         self._blue_fade_elapsed = 0.0
         self._blue_started = False
         self._blue_fully_visible = False
-        # blue position will be set relative to start_x in on_enter (same as yellow to fade over it)
+
         self._blue_x = None
+        self._blue_moving = False
+        self._blue_move_elapsed = 0.0
+        self._blue_start_x = None
+        self._blue_target_x = None
+        self._blue_finished = False
 
     def on_enter(self):
-        # compute positions once we have a display surface
         surf = pygame.display.get_surface()
         if surf:
             w, h = surf.get_size()
             self._start_x = w / 2.0
-            min_center_x = float(self.radius)  # keep circle fully on-screen
-            # target is halfway between center and leftmost allowed center
+            min_center_x = float(self.radius)
             self._target_x = (self._start_x + min_center_x) / 2.0
             self._current_x = self._start_x
-
             # place blue at the original center so it fades in over the yellow
             self._blue_x = self._start_x
         self._elapsed = 0.0
@@ -166,18 +166,21 @@ class CutScene1 (Screen):
         self._moving = False
         self._finished = False
 
-        # reset blue state
         self._blue_wait_elapsed = 0.0
         self._blue_fade_elapsed = 0.0
         self._blue_started = False
         self._blue_fully_visible = False
+        self._blue_moving = False
+        self._blue_move_elapsed = 0.0
+        self._blue_start_x = None
+        self._blue_target_x = None
+        self._blue_finished = False
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.manager.switch("menu")
 
     def update(self, dt: float):
-        # if red finished and blue hasn't fully appeared, progress blue timers
         if self._finished and not self._blue_fully_visible:
             if not self._blue_started:
                 self._blue_wait_elapsed += dt
@@ -190,7 +193,32 @@ class CutScene1 (Screen):
                     self._blue_fade_elapsed = self.blue_fade_duration
                     self._blue_fully_visible = True
 
-        # existing movement logic (no-op if finished)
+        # when fade completes, start blue movement (halfway to right edge)
+        if self._blue_fully_visible and not self._blue_finished and not self._blue_moving:
+            surf = pygame.display.get_surface()
+            if surf:
+                w, h = surf.get_size()
+                max_center_x = float(w - self.radius)  # rightmost allowed center
+            else:
+                max_center_x = (self._blue_x or 0)  # fallback
+
+            self._blue_start_x = float(self._blue_x if self._blue_x is not None else self._start_x or 0)
+            self._blue_target_x = (self._blue_start_x + max_center_x) / 2.0
+            self._blue_moving = True
+            self._blue_move_elapsed = 0.0
+
+        # advance blue movement if active
+        if self._blue_moving:
+            self._blue_move_elapsed += dt
+            t = min(1.0, self._blue_move_elapsed / max(1e-6, self.blue_move_duration))
+            if self._blue_start_x is not None and self._blue_target_x is not None:
+                self._blue_x = self._blue_start_x + (self._blue_target_x - self._blue_start_x) * t
+            if t >= 1.0:
+                self._blue_x = self._blue_target_x
+                self._blue_moving = False
+                self._blue_finished = True
+
+        # existing red movement logic (no-op if red already finished)
         if self._finished:
             return
 
@@ -216,7 +244,6 @@ class CutScene1 (Screen):
             if self._start_x is not None and self._target_x is not None:
                 self._current_x = self._start_x + (self._target_x - self._start_x) * t
             if t >= 1.0:
-                # ensure exact final position and stop repeating
                 self._current_x = self._target_x
                 self._moving = False
                 self._finished = True
@@ -232,52 +259,16 @@ class CutScene1 (Screen):
         yellow_x = int(self._start_x) if self._start_x is not None else (w // 2)
         pygame.draw.circle(surface, self.yellow_color, (yellow_x, center_y), self.yellow_radius)
 
-        # draw blue after yellow so it fades in over the yellow
+        # draw blue over yellow (use current blue position and current alpha)
         if self._blue_x is None:
             self._blue_x = yellow_x
         if self._blue_started or self._blue_fully_visible:
-            # compute alpha (0..255)
             if self._blue_fully_visible:
                 alpha = 255
             else:
                 alpha = int(255 * (self._blue_fade_elapsed / max(1e-6, self.blue_fade_duration)))
             alpha = max(0, min(255, alpha))
 
-            # create an alpha-capable surface for the blue circle (same size as red)
-            d = self.blue_radius * 2
-            blue_surf = pygame.Surface((d, d), pygame.SRCALPHA)
-            blue_color = (*self.blue_color_rgb, alpha)
-            pygame.draw.circle(blue_surf, blue_color, (self.blue_radius, self.blue_radius), self.blue_radius)
-            bx = int(self._blue_x) - self.blue_radius
-            by = center_y - self.blue_radius
-            surface.blit(blue_surf, (bx, by))
-
-        # then draw the red (moving) circle on top
-        cx = int(self._current_x) if self._current_x is not None else (w // 2)
-        pygame.draw.circle(surface, self.color, (cx, center_y), self.radius)
-
-    def render(self, surface: pygame.Surface):
-        surface.fill((0, 0, 0))  # pure black backdrop
-        w, h = surface.get_size()
-        center_y = h // 2
-
-        # yellow sits at the original center (start_x) so it will be revealed as red moves
-        yellow_x = int(self._start_x) if self._start_x is not None else (w // 2)
-        pygame.draw.circle(surface, self.yellow_color, (yellow_x, center_y), self.yellow_radius)
-
-        # draw blue under/on top depending on desired layering
-        # draw blue after yellow but before red so red can still cover it while moving
-        if self._blue_x is None:
-            self._blue_x = yellow_x + 120
-        if self._blue_started or self._blue_fully_visible:
-            # compute alpha (0..255)
-            if self._blue_fully_visible:
-                alpha = 255
-            else:
-                alpha = int(255 * (self._blue_fade_elapsed / max(1e-6, self.blue_fade_duration)))
-            alpha = max(0, min(255, alpha))
-
-            # create an alpha-capable surface for the blue circle
             d = self.blue_radius * 2
             blue_surf = pygame.Surface((d, d), pygame.SRCALPHA)
             blue_color = (*self.blue_color_rgb, alpha)
