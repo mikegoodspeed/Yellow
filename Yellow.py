@@ -154,7 +154,7 @@ class CutScene1 (Screen):
         # green sequence (appears after blue finishes + wait)
         self.green_radius = self.radius
         self.green_color_rgb = (40, 200, 80)   # green color
-        self.green_wait_after_all = 10.0       # wait after blue finished
+        self.green_wait_after_all = 5.0       # wait after blue finished
         self.green_move_duration = 1.0         # move time to yellow
         self.green_fade_duration = 1.0         # fade-out duration once in place
         self._green_wait_elapsed = 0.0
