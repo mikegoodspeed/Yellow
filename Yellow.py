@@ -467,7 +467,7 @@ class CutScene1 (Screen):
         cx = int(self._current_x) if self._current_x is not None else (w // 2)
         pygame.draw.circle(surface, self.color, (cx, center_y), self.radius)
 
-    def render(self, surface: pygame.Surface):  # noqa: F
+    def render(self, surface: pygame.Surface):
         surface.fill((0, 0, 0))  # pure black backdrop
         w, h = surface.get_size()
         center_y = h // 2
