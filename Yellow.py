@@ -163,17 +163,23 @@ class YellowCircle(CircleEffect):
 
 
 class RedCircle(CircleEffect):
-    def __init__(self, radius: int, color: tuple[int, int, int], wait_time: float, move_duration: float):
+    def __init__(self, radius: int, color: tuple[int, int, int], wait_time: float, move_duration: float, fade_in_delay: float = 1.0, fade_in_duration: float = 1.0):
         super().__init__(radius, color)
         self.wait_time = wait_time
         self.move_duration = move_duration
+        self.fade_in_delay = fade_in_delay
+        self.fade_in_duration = fade_in_duration
         self.start_x: float | None = None
         self.target_x: float | None = None
         self.current_x: float | None = None
-        self.wait_elapsed = 0.0
+        self.wait_elapsed = 0.0  # movement wait
         self.move_elapsed = 0.0
         self.moving = False
         self.finished = False
+        self.fade_wait_elapsed = 0.0
+        self.fade_in_elapsed = 0.0
+        self.fading_in = False
+        self.visible = False
 
     def reset(self, start_x: float, target_x: float):
         self.start_x = start_x
@@ -183,10 +189,28 @@ class RedCircle(CircleEffect):
         self.move_elapsed = 0.0
         self.moving = False
         self.finished = False
+        self.fade_wait_elapsed = 0.0
+        self.fade_in_elapsed = 0.0
+        self.fading_in = False
+        self.visible = False
 
     def update(self, timestamp: float):
         if self.finished:
             return
+        if not self.visible:
+            if not self.fading_in:
+                self.fade_wait_elapsed += timestamp
+                if self.fade_wait_elapsed >= self.fade_in_delay:
+                    self.fading_in = True
+                    self.fade_in_elapsed = 0.0
+            else:
+                self.fade_in_elapsed += timestamp
+                if self.fade_in_elapsed >= self.fade_in_duration:
+                    self.fade_in_elapsed = self.fade_in_duration
+                    self.fading_in = False
+                    self.visible = True
+            return
+
         if not self.moving:
             self.wait_elapsed += timestamp
             if self.wait_elapsed >= self.wait_time:
@@ -205,7 +229,13 @@ class RedCircle(CircleEffect):
     def render(self, surface: pygame.Surface, center_y: float):
         if self.current_x is None:
             return
-        pygame.draw.circle(surface, self.color, (int(self.current_x), int(center_y)), self.radius)
+        if not self.visible and not self.fading_in:
+            return
+        if self.fading_in and self.fade_in_duration > 0:
+            alpha = int(255 * min(1.0, self.fade_in_elapsed / max(1e-6, self.fade_in_duration)))
+        else:
+            alpha = 255
+        self._draw_alpha_circle(surface, (self.current_x, center_y), alpha)
 
 
 class BlueCircle(CircleEffect):
@@ -428,7 +458,7 @@ class CutScene1(Screen):
         red_radius = 50
         yellow_radius = 18
 
-        self.red_circle = RedCircle(red_radius, (255, 0, 0), wait_time=5.0, move_duration=3.0)
+        self.red_circle = RedCircle(red_radius, (255, 0, 0), wait_time=2.0, move_duration=3.0)
         self.blue_circle = BlueCircle(red_radius, (50, 100, 255), wait_after_red=3.0, fade_duration=2.0, move_duration=3.0)
         self.green_circle = GreenCircle(red_radius, (40, 200, 80), wait_after_blue=5.0, move_duration=1.0, fade_duration=1.0)
         self.yellow_circle = YellowCircle(yellow_radius, (255, 215, 64), fade_duration=1.0)
