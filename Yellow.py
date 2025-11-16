@@ -145,8 +145,9 @@ class TutorialManaScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.primary_text = "Primary"
-        self.secondary_text = "Secondary"
+        self.primary_text = "This mana orb represents your energy."
+        self.tertiary_text = "Making any move will consume mana."
+        self.secondary_text = "Mana will auto-regenerate over time."
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color('black')
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
@@ -167,6 +168,11 @@ class TutorialManaScreen(Screen):
             secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
             secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 5))
             surface.blit(secondary_surface, secondary_rect)
+
+        if self.tertiary_text:
+            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
+            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 30))
+            surface.blit(tertiary_surface, tertiary_rect)
 
         zone_height = surface.get_height() / 3.0
         desired_height = zone_height * 0.8
@@ -228,6 +234,7 @@ class MenuScreen(Screen):
     def render(self, surface):
         selected_option_color = (255, 255, 100)
         default_option_color = (200, 200, 200)
+        
         extremely_dark_blue = (0, 10, 47)
         surface.fill(extremely_dark_blue)
         surface_width, surface_height = surface.get_size()
