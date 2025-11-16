@@ -57,11 +57,19 @@ class TutorialScreen1(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
+        self.elapsed = 0.0
+        self.secondary_delay = 3.0
 
     # def handle_event(self, event: pygame.event.Event):
     #     if event.type == pygame.KEYDOWN:
     #         # any key moves to MenuScreen
     #         self.manager.switch("MenuScreen")
+
+    def on_enter(self):
+        self.elapsed = 0.0
+
+    def update(self, timestamp: float):
+        self.elapsed += timestamp
 
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
@@ -74,10 +82,11 @@ class TutorialScreen1(Screen):
         center_coordinates = (surface.get_width()//2, surface.get_height()//2)
         rect = text.get_rect(center=center_coordinates)
         surface.blit(text, rect)
-        text = self.font.render(secondary_text, antialias, text_color)
-        center_coordinates = (surface.get_width()//2, surface.get_height()//2 + 50)
-        rect = text.get_rect(center=center_coordinates)
-        surface.blit(text, rect)
+        if self.elapsed >= self.secondary_delay:
+            text = self.font.render(secondary_text, antialias, text_color)
+            center_coordinates = (surface.get_width()//2, surface.get_height()//2 + 50)
+            rect = text.get_rect(center=center_coordinates)
+            surface.blit(text, rect)
 
 
 class TitleScreen(Screen):
