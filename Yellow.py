@@ -111,306 +111,339 @@ class MenuScreen(Screen):
             surface.blit(text, rect)
 
 
-class CutScene1 (Screen):
+class CircleEffect:
+    def __init__(self, radius: int, color: tuple[int, int, int]):
+        self.radius = radius
+        self.color = color
+
+    def _draw_alpha_circle(self, surface: pygame.Surface, center: tuple[float, float], alpha: int):
+        diameter = self.radius * 2
+        circle_surface = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
+        pygame.draw.circle(circle_surface, (*self.color, alpha), (self.radius, self.radius), self.radius)
+        surface.blit(circle_surface, (int(center[0]) - self.radius, int(center[1]) - self.radius))
+
+
+class YellowCircle(CircleEffect):
+    def __init__(self, radius: int, color: tuple[int, int, int], fade_duration: float):
+        super().__init__(radius, color)
+        self.fade_duration = fade_duration
+        self.center_x = 0.0
+        self.fading = False
+        self.fade_elapsed = 0.0
+
+    def reset(self, center_x: float):
+        self.center_x = center_x
+        self.fading = False
+        self.fade_elapsed = 0.0
+
+    def start_fade(self):
+        if not self.fading:
+            self.fading = True
+            self.fade_elapsed = 0.0
+
+    def update(self, dt: float):
+        if self.fading:
+            self.fade_elapsed += dt
+            if self.fade_elapsed >= self.fade_duration:
+                self.fade_elapsed = self.fade_duration
+                self.fading = False
+
+    def render(self, surface: pygame.Surface, center_y: float):
+        if self.fading and self.fade_duration > 0:
+            ratio = max(0.0, 1.0 - (self.fade_elapsed / max(1e-6, self.fade_duration)))
+            alpha = int(255 * ratio)
+        else:
+            alpha = 255
+        self._draw_alpha_circle(surface, (self.center_x, center_y), alpha)
+
+
+class RedCircle(CircleEffect):
+    def __init__(self, radius: int, color: tuple[int, int, int], wait_time: float, move_duration: float):
+        super().__init__(radius, color)
+        self.wait_time = wait_time
+        self.move_duration = move_duration
+        self.start_x: float | None = None
+        self.target_x: float | None = None
+        self.current_x: float | None = None
+        self.wait_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.moving = False
+        self.finished = False
+
+    def reset(self, start_x: float, target_x: float):
+        self.start_x = start_x
+        self.target_x = target_x
+        self.current_x = start_x
+        self.wait_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.moving = False
+        self.finished = False
+
+    def update(self, dt: float):
+        if self.finished:
+            return
+        if not self.moving:
+            self.wait_elapsed += dt
+            if self.wait_elapsed >= self.wait_time:
+                self.moving = True
+                self.move_elapsed = 0.0
+        else:
+            self.move_elapsed += dt
+            t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
+            if self.start_x is not None and self.target_x is not None:
+                self.current_x = self.start_x + (self.target_x - self.start_x) * t
+            if t >= 1.0:
+                self.current_x = self.target_x
+                self.moving = False
+                self.finished = True
+
+    def render(self, surface: pygame.Surface, center_y: float):
+        if self.current_x is None:
+            return
+        pygame.draw.circle(surface, self.color, (int(self.current_x), int(center_y)), self.radius)
+
+
+class BlueCircle(CircleEffect):
+    def __init__(self, radius: int, color: tuple[int, int, int], wait_after_red: float, fade_duration: float, move_duration: float):
+        super().__init__(radius, color)
+        self.wait_after_red = wait_after_red
+        self.fade_duration = fade_duration
+        self.move_duration = move_duration
+        self.center_x: float | None = None
+        self.screen_width = 0
+        self.wait_elapsed = 0.0
+        self.fade_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.fading_in = False
+        self.fully_visible = False
+        self.moving = False
+        self.ready_for_sequence = False
+        self.finished = False
+        self.start_x = 0.0
+        self.target_x = 0.0
+
+    def reset(self, start_x: float, screen_width: int):
+        self.center_x = start_x
+        self.screen_width = screen_width
+        self.wait_elapsed = 0.0
+        self.fade_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.fading_in = False
+        self.fully_visible = False
+        self.moving = False
+        self.ready_for_sequence = False
+        self.finished = False
+        self.start_x = start_x
+        self.target_x = start_x
+
+    def notify_red_finished(self):
+        self.ready_for_sequence = True
+
+    def update(self, dt: float):
+        if not self.ready_for_sequence or self.center_x is None:
+            return
+        if not self.fading_in:
+            self.wait_elapsed += dt
+            if self.wait_elapsed >= self.wait_after_red:
+                self.fading_in = True
+                self.fade_elapsed = 0.0
+        elif not self.fully_visible:
+            self.fade_elapsed += dt
+            if self.fade_elapsed >= self.fade_duration:
+                self.fade_elapsed = self.fade_duration
+                self.fully_visible = True
+        elif not self.moving and not self.finished:
+            max_center_x = float(self.screen_width - self.radius) if self.screen_width else self.center_x
+            self.start_x = self.center_x
+            self.target_x = (self.start_x + max_center_x) / 2.0
+            self.move_elapsed = 0.0
+            self.moving = True
+        elif self.moving:
+            self.move_elapsed += dt
+            t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
+            self.center_x = self.start_x + (self.target_x - self.start_x) * t
+            if t >= 1.0:
+                self.center_x = self.target_x
+                self.moving = False
+                self.finished = True
+
+    def render(self, surface: pygame.Surface, center_y: float):
+        if not self.ready_for_sequence or self.center_x is None:
+            return
+        if not self.fading_in and not self.fully_visible and not self.finished and not self.moving:
+            return
+        if self.fully_visible or self.finished or self.move_duration == 0:
+            alpha = 255
+        else:
+            alpha = int(255 * (self.fade_elapsed / max(1e-6, self.fade_duration)))
+        alpha = max(0, min(255, alpha))
+        self._draw_alpha_circle(surface, (self.center_x, center_y), alpha)
+
+
+class GreenCircle(CircleEffect):
+    def __init__(self, radius: int, color: tuple[int, int, int], wait_after_blue: float, move_duration: float, fade_duration: float, offset: tuple[float, float] = (-30.0, -20.0)):
+        super().__init__(radius, color)
+        self.wait_after_blue = wait_after_blue
+        self.move_duration = move_duration
+        self.fade_duration = fade_duration
+        self.offset = offset
+        self.wait_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.fade_elapsed = 0.0
+        self.started = False
+        self.moving = False
+        self.in_place = False
+        self.fading = False
+        self.finished = False
+        self.can_start_sequence = False
+        self.position: tuple[float, float] | None = None
+        self.start_pos: tuple[float, float] | None = None
+        self.target_pos: tuple[float, float] | None = None
+        self._trigger_fade_event = False
+
+    def reset(self, yellow_x: float, center_y: float):
+        self.wait_elapsed = 0.0
+        self.move_elapsed = 0.0
+        self.fade_elapsed = 0.0
+        self.started = False
+        self.moving = False
+        self.in_place = False
+        self.fading = False
+        self.finished = False
+        self.can_start_sequence = False
+        self.position = None
+        self.start_pos = None
+        self.target_pos = (yellow_x, center_y)
+        self._trigger_fade_event = False
+
+    def notify_blue_finished(self):
+        self.can_start_sequence = True
+
+    def update(self, dt: float, yellow_x: float, center_y: float):
+        if self.finished or not self.can_start_sequence:
+            return
+        if not self.started:
+            self.wait_elapsed += dt
+            if self.wait_elapsed >= self.wait_after_blue:
+                self.started = True
+                offset_x, offset_y = self.offset
+                start_x = yellow_x + offset_x
+                start_y = center_y + offset_y
+                self.position = (start_x, start_y)
+                self.start_pos = self.position
+        elif not self.moving and not self.in_place:
+            self.target_pos = (yellow_x, center_y)
+            self.moving = True
+            self.move_elapsed = 0.0
+        elif self.moving:
+            self.move_elapsed += dt
+            t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
+            if self.start_pos and self.target_pos:
+                sx, sy = self.start_pos
+                tx, ty = self.target_pos
+                self.position = (sx + (tx - sx) * t, sy + (ty - sy) * t)
+            if t >= 1.0:
+                self.position = self.target_pos
+                self.moving = False
+                self.in_place = True
+                self.fading = True
+                self.fade_elapsed = 0.0
+                self._trigger_fade_event = True
+        elif self.fading:
+            self.fade_elapsed += dt
+            if self.fade_elapsed >= self.fade_duration:
+                self.fade_elapsed = self.fade_duration
+                self.fading = False
+                self.finished = True
+
+    def consume_fade_trigger(self) -> bool:
+        if self._trigger_fade_event:
+            self._trigger_fade_event = False
+            return True
+        return False
+
+    def render(self, surface: pygame.Surface):
+        if not self.started or self.position is None:
+            return
+        if self.fading and self.fade_duration > 0:
+            ratio = max(0.0, 1.0 - (self.fade_elapsed / max(1e-6, self.fade_duration)))
+            alpha = int(255 * ratio)
+        else:
+            alpha = 255
+        self._draw_alpha_circle(surface, self.position, alpha)
+
+
+class CutScene1(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.radius = 50
-        self.color = (255, 0, 0)  # pure red
+        self.surface_width = 800
+        self.surface_height = 600
+        self.center_x = self.surface_width / 2.0
+        self.center_y = self.surface_height / 2.0
 
-        # small yellow reveal circle (drawn first, so red covers it until moved)
-        self.yellow_radius = 18
-        self.yellow_color_rgb = (255, 215, 64)  # Golden yellow
+        red_radius = 50
+        yellow_radius = 18
 
-        # timing/motion state for red movement
-        self.wait_time = 5.0       # seconds to wait before moving
-        self.move_duration = 3.0   # seconds to complete the move
-        self._elapsed = 0.0
-        self._move_elapsed = 0.0
-        self._moving = False
-        self._finished = False     # stop repeating after done
+        self.red_circle = RedCircle(red_radius, (255, 0, 0), wait_time=5.0, move_duration=3.0)
+        self.blue_circle = BlueCircle(red_radius, (50, 100, 255), wait_after_red=3.0, fade_duration=2.0, move_duration=3.0)
+        self.green_circle = GreenCircle(red_radius, (40, 200, 80), wait_after_blue=5.0, move_duration=1.0, fade_duration=1.0)
+        self.yellow_circle = YellowCircle(yellow_radius, (255, 215, 64), fade_duration=1.0)
 
-        self._start_x = None
-        self._target_x = None
-        self._current_x = None
+        self._blue_triggered = False
+        self._green_triggered = False
 
-        # blue (same size as red)
-        self.blue_radius = self.radius
-        self.blue_color_rgb = (50, 100, 255)
-        self.blue_wait_after_red = 3.0
-        self.blue_fade_duration = 2.0
-        self.blue_move_duration = 3.0
-        self._blue_wait_elapsed = 0.0
-        self._blue_fade_elapsed = 0.0
-        self._blue_started = False
-        self._blue_fully_visible = False
-        self._blue_x = None
-        self._blue_moving = False
-        self._blue_move_elapsed = 0.0
-        self._blue_start_x = None
-        self._blue_target_x = None
-        self._blue_finished = False
-
-        # green sequence (appears after blue finishes + wait)
-        self.green_radius = self.radius
-        self.green_color_rgb = (40, 200, 80)   # green color
-        self.green_wait_after_all = 5.0       # wait after blue finished
-        self.green_move_duration = 1.0         # move time to yellow
-        self.green_fade_duration = 1.0         # fade-out duration once in place
-        self._green_wait_elapsed = 0.0
-        self._green_started = False
-        self._green_moving = False
-        self._green_move_elapsed = 0.0
-        self._green_x = None
-        self._green_y = None
-        self._green_start_x = None
-        self._green_start_y = None
-        self._green_target_x = None
-        self._green_target_y = None
-        self._green_in_place = False
-        self._green_fade_elapsed = 0.0
-        self._green_fading = False
-
-        # yellow fade state (fades out when green fades out)
-        self._yellow_fading = False
-        self._yellow_fade_elapsed = 0.0
-        self._yellow_fade_duration = self.green_fade_duration
-
-    def on_enter(self):
+    def _refresh_surface_metrics(self):
         surf = pygame.display.get_surface()
         if surf:
-            w, h = surf.get_size()
-            self._start_x = w / 2.0
-            min_center_x = float(self.radius)
-            self._target_x = (self._start_x + min_center_x) / 2.0
-            self._current_x = self._start_x
-            self._blue_x = self._start_x
-        self._elapsed = 0.0
-        self._move_elapsed = 0.0
-        self._moving = False
-        self._finished = False
+            self.surface_width, self.surface_height = surf.get_size()
+            self.center_x = self.surface_width / 2.0
+            self.center_y = self.surface_height / 2.0
 
-        self._blue_wait_elapsed = 0.0
-        self._blue_fade_elapsed = 0.0
-        self._blue_started = False
-        self._blue_fully_visible = False
-        self._blue_moving = False
-        self._blue_move_elapsed = 0.0
-        self._blue_start_x = None
-        self._blue_target_x = None
-        self._blue_finished = False
+    def on_enter(self):
+        self._refresh_surface_metrics()
+        start_x = self.center_x
+        min_center_x = float(self.red_circle.radius)
+        target_x = (start_x + min_center_x) / 2.0
 
-        # green reset
-        self._green_wait_elapsed = 0.0
-        self._green_started = False
-        self._green_moving = False
-        self._green_move_elapsed = 0.0
-        self._green_x = None
-        self._green_y = None
-        self._green_start_x = None
-        self._green_start_y = None
-        self._green_target_x = None
-        self._green_target_y = None
-        self._green_in_place = False
-        self._green_fade_elapsed = 0.0
-        self._green_fading = False
+        self.red_circle.reset(start_x, target_x)
+        self.blue_circle.reset(start_x, self.surface_width)
+        self.green_circle.reset(start_x, self.center_y)
+        self.yellow_circle.reset(start_x)
 
-        self._yellow_fading = False
-        self._yellow_fade_elapsed = 0.0
+        self._blue_triggered = False
+        self._green_triggered = False
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.manager.switch("menu")
 
     def update(self, dt: float):
-        # advance blue fade after red finished
-        if self._finished and not self._blue_fully_visible:
-            if not self._blue_started:
-                self._blue_wait_elapsed += dt
-                if self._blue_wait_elapsed >= self.blue_wait_after_red:
-                    self._blue_started = True
-                    self._blue_fade_elapsed = 0.0
-            else:
-                self._blue_fade_elapsed += dt
-                if self._blue_fade_elapsed >= self.blue_fade_duration:
-                    self._blue_fade_elapsed = self.blue_fade_duration
-                    self._blue_fully_visible = True
+        self._refresh_surface_metrics()
+        self.red_circle.update(dt)
+        self.blue_circle.update(dt)
+        self.green_circle.update(dt, self.yellow_circle.center_x, self.center_y)
+        self.yellow_circle.update(dt)
 
-        # start blue movement when fade complete
-        if self._blue_fully_visible and not self._blue_finished and not self._blue_moving:
-            surf = pygame.display.get_surface()
-            if surf:
-                w, h = surf.get_size()
-                max_center_x = float(w - self.radius)
-            else:
-                max_center_x = (self._blue_x or 0)
-            self._blue_start_x = float(self._blue_x if self._blue_x is not None else self._start_x or 0)
-            self._blue_target_x = (self._blue_start_x + max_center_x) / 2.0
-            self._blue_moving = True
-            self._blue_move_elapsed = 0.0
+        if self.red_circle.finished and not self._blue_triggered:
+            self.blue_circle.notify_red_finished()
+            self._blue_triggered = True
 
-        # advance blue movement
-        if self._blue_moving:
-            self._blue_move_elapsed += dt
-            t = min(1.0, self._blue_move_elapsed / max(1e-6, self.blue_move_duration))
-            if self._blue_start_x is not None and self._blue_target_x is not None:
-                self._blue_x = self._blue_start_x + (self._blue_target_x - self._blue_start_x) * t
-            if t >= 1.0:
-                self._blue_x = self._blue_target_x
-                self._blue_moving = False
-                self._blue_finished = True
+        if self.blue_circle.finished and not self._green_triggered:
+            self.green_circle.notify_blue_finished()
+            self._green_triggered = True
 
-        # after blue finished, start counting towards green
-        if self._blue_finished and not self._green_started:
-            self._green_wait_elapsed += dt
-            if self._green_wait_elapsed >= self.green_wait_after_all:
-                self._green_started = True
-                # initialize green start above-left of yellow
-                yellow_x = float(self._start_x if self._start_x is not None else 0.0)
-                surf = pygame.display.get_surface()
-                if surf:
-                    _, h = surf.get_size()
-                    center_y = h / 2.0
-                else:
-                    center_y = 0.0
-                # slightly left and above
-                offset_x = -30.0
-                offset_y = -20.0
-                self._green_start_x = yellow_x + offset_x
-                self._green_start_y = center_y + offset_y
-                self._green_x = self._green_start_x
-                self._green_y = self._green_start_y
-
-        # start green movement once started and not yet moving
-        if self._green_started and not self._green_moving and not self._green_in_place:
-            # set target to yellow's exact standing place (center_y and yellow_x)
-            yellow_x = float(self._start_x if self._start_x is not None else 0.0)
-            surf = pygame.display.get_surface()
-            if surf:
-                _, h = surf.get_size()
-                center_y = h / 2.0
-            else:
-                center_y = 0.0
-            self._green_target_x = yellow_x
-            self._green_target_y = center_y
-            self._green_moving = True
-            self._green_move_elapsed = 0.0
-
-        # advance green movement
-        if self._green_moving:
-            self._green_move_elapsed += dt
-            t = min(1.0, self._green_move_elapsed / max(1e-6, self.green_move_duration))
-            if self._green_start_x is not None and self._green_target_x is not None:
-                self._green_x = self._green_start_x + (self._green_target_x - self._green_start_x) * t
-            if self._green_start_y is not None and self._green_target_y is not None:
-                self._green_y = self._green_start_y + (self._green_target_y - self._green_start_y) * t
-            if t >= 1.0:
-                self._green_x = self._green_target_x
-                self._green_y = self._green_target_y
-                self._green_moving = False
-                self._green_in_place = True
-                # start fade-out of green and yellow immediately
-                self._green_fading = True
-                self._green_fade_elapsed = 0.0
-                self._yellow_fading = True
-                self._yellow_fade_elapsed = 0.0
-
-        # advance fades if active
-        if self._green_fading:
-            self._green_fade_elapsed += dt
-            if self._green_fade_elapsed >= self.green_fade_duration:
-                self._green_fade_elapsed = self.green_fade_duration
-                self._green_fading = False  # green finished fading (now invisible)
-
-        if self._yellow_fading:
-            self._yellow_fade_elapsed += dt
-            if self._yellow_fade_elapsed >= self._yellow_fade_duration:
-                self._yellow_fade_elapsed = self._yellow_fade_duration
-                self._yellow_fading = False
-
-        # existing red movement logic (only if not finished)
-        if not self._finished:
-            # lazy initialize if needed
-            if self._start_x is None:
-                surf = pygame.display.get_surface()
-                if surf:
-                    w, h = surf.get_size()
-                    self._start_x = w / 2.0
-                    self._current_x = self._start_x
-                    self._target_x = (self._start_x + float(self.radius)) / 2.0
-                    if self._blue_x is None:
-                        self._blue_x = self._start_x
-
-            if not self._moving:
-                self._elapsed += dt
-                if self._elapsed >= self.wait_time:
-                    self._moving = True
-                    self._move_elapsed = 0.0
-            else:
-                self._move_elapsed += dt
-                t = min(1.0, self._move_elapsed / max(1e-6, self.move_duration))
-                if self._start_x is not None and self._target_x is not None:
-                    self._current_x = self._start_x + (self._target_x - self._start_x) * t
-                if t >= 1.0:
-                    self._current_x = self._target_x
-                    self._moving = False
-                    self._finished = True
-                    self._blue_wait_elapsed = 0.0
+        if self.green_circle.consume_fade_trigger():
+            self.yellow_circle.start_fade()
 
     def render(self, surface: pygame.Surface):
-        surface.fill((0, 0, 0))  # pure black backdrop
-        w, h = surface.get_size()
-        center_y = h // 2
+        surface.fill((0, 0, 0))
+        center_y = self.center_y
 
-        yellow_x = int(self._start_x) if self._start_x is not None else (w // 2)
-
-        # draw yellow via alpha surface so it can fade out when green fades
-        if self._yellow_fading:
-            y_alpha = int(255 * max(0.0, 1.0 - (self._yellow_fade_elapsed / max(1e-6, self._yellow_fade_duration))))
-        else:
-            # if green has finished fading and yellow not explicitly fading, keep visible
-            y_alpha = 255
-        y_alpha = max(0, min(255, y_alpha))
-        dy = self.yellow_radius * 2
-        yellow_surf = pygame.Surface((dy, dy), pygame.SRCALPHA)
-        pygame.draw.circle(yellow_surf, (*self.yellow_color_rgb, y_alpha), (self.yellow_radius, self.yellow_radius), self.yellow_radius)
-        surface.blit(yellow_surf, (yellow_x - self.yellow_radius, center_y - self.yellow_radius))
-
-        # draw blue (with its fade) over yellow if active
-        if self._blue_x is None:
-            self._blue_x = yellow_x
-        if self._blue_started or self._blue_fully_visible:
-            if self._blue_fully_visible:
-                b_alpha = 255
-            else:
-                b_alpha = int(255 * (self._blue_fade_elapsed / max(1e-6, self.blue_fade_duration)))
-            b_alpha = max(0, min(255, b_alpha))
-            d = self.blue_radius * 2
-            blue_surf = pygame.Surface((d, d), pygame.SRCALPHA)
-            blue_color = (*self.blue_color_rgb, b_alpha)
-            pygame.draw.circle(blue_surf, blue_color, (self.blue_radius, self.blue_radius), self.blue_radius)
-            bx = int(self._blue_x) - self.blue_radius
-            by = center_y - self.blue_radius
-            surface.blit(blue_surf, (bx, by))
-
-        # draw green on top of yellow when started (with movement + fade)
-        if self._green_started:
-            # compute current alpha for green (if fading, alpha goes down)
-            if self._green_fading:
-                g_alpha = int(255 * max(0.0, 1.0 - (self._green_fade_elapsed / max(1e-6, self.green_fade_duration))))
-            else:
-                g_alpha = 255
-            g_alpha = max(0, min(255, g_alpha))
-            gd = self.green_radius * 2
-            green_surf = pygame.Surface((gd, gd), pygame.SRCALPHA)
-            pygame.draw.circle(green_surf, (*self.green_color_rgb, g_alpha), (self.green_radius, self.green_radius), self.green_radius)
-            gx = int(self._green_x if self._green_x is not None else yellow_x) - self.green_radius
-            gy = int(self._green_y if self._green_y is not None else center_y) - self.green_radius
-            surface.blit(green_surf, (gx, gy))
-
-        # then draw the red (moving) circle on top
-        cx = int(self._current_x) if self._current_x is not None else (w // 2)
-        pygame.draw.circle(surface, self.color, (cx, center_y), self.radius)
+        self.yellow_circle.render(surface, center_y)
+        self.blue_circle.render(surface, center_y)
+        self.green_circle.render(surface)
+        self.red_circle.render(surface, center_y)
 
 def main():
     pygame.init()
@@ -444,6 +477,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
