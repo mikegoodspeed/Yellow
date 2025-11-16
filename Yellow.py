@@ -22,9 +22,9 @@ class ScreenManager:
         if self.active:
             self.active.handle_event(event)
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         if self.active:
-            self.active.update(dt)
+            self.active.update(timestamp)
 
     def render(self, surface: pygame.Surface):
         if self.active:
@@ -47,7 +47,7 @@ class Screen:
     def handle_event(self, event: pygame.event.Event):
         pass
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         pass
 
     def render(self, surface: pygame.Surface):
@@ -141,9 +141,9 @@ class YellowCircle(CircleEffect):
             self.fading = True
             self.fade_elapsed = 0.0
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         if self.fading:
-            self.fade_elapsed += dt
+            self.fade_elapsed += timestamp
             if self.fade_elapsed >= self.fade_duration:
                 self.fade_elapsed = self.fade_duration
                 self.fading = False
@@ -179,16 +179,16 @@ class RedCircle(CircleEffect):
         self.moving = False
         self.finished = False
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         if self.finished:
             return
         if not self.moving:
-            self.wait_elapsed += dt
+            self.wait_elapsed += timestamp
             if self.wait_elapsed >= self.wait_time:
                 self.moving = True
                 self.move_elapsed = 0.0
         else:
-            self.move_elapsed += dt
+            self.move_elapsed += timestamp
             t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
             if self.start_x is not None and self.target_x is not None:
                 self.current_x = self.start_x + (self.target_x - self.start_x) * t
@@ -239,16 +239,16 @@ class BlueCircle(CircleEffect):
     def notify_red_finished(self):
         self.ready_for_sequence = True
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         if not self.ready_for_sequence or self.center_x is None:
             return
         if not self.fading_in:
-            self.wait_elapsed += dt
+            self.wait_elapsed += timestamp
             if self.wait_elapsed >= self.wait_after_red:
                 self.fading_in = True
                 self.fade_elapsed = 0.0
         elif not self.fully_visible:
-            self.fade_elapsed += dt
+            self.fade_elapsed += timestamp
             if self.fade_elapsed >= self.fade_duration:
                 self.fade_elapsed = self.fade_duration
                 self.fully_visible = True
@@ -259,7 +259,7 @@ class BlueCircle(CircleEffect):
             self.move_elapsed = 0.0
             self.moving = True
         elif self.moving:
-            self.move_elapsed += dt
+            self.move_elapsed += timestamp
             t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
             self.center_x = self.start_x + (self.target_x - self.start_x) * t
             if t >= 1.0:
@@ -319,11 +319,11 @@ class GreenCircle(CircleEffect):
     def notify_blue_finished(self):
         self.can_start_sequence = True
 
-    def update(self, dt: float, yellow_x: float, center_y: float):
+    def update(self, timestamp: float, yellow_x: float, center_y: float):
         if self.finished or not self.can_start_sequence:
             return
         if not self.started:
-            self.wait_elapsed += dt
+            self.wait_elapsed += timestamp
             if self.wait_elapsed >= self.wait_after_blue:
                 self.started = True
                 offset_x, offset_y = self.offset
@@ -336,7 +336,7 @@ class GreenCircle(CircleEffect):
             self.moving = True
             self.move_elapsed = 0.0
         elif self.moving:
-            self.move_elapsed += dt
+            self.move_elapsed += timestamp
             t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
             if self.start_pos and self.target_pos:
                 sx, sy = self.start_pos
@@ -350,7 +350,7 @@ class GreenCircle(CircleEffect):
                 self.fade_elapsed = 0.0
                 self._trigger_fade_event = True
         elif self.fading:
-            self.fade_elapsed += dt
+            self.fade_elapsed += timestamp
             if self.fade_elapsed >= self.fade_duration:
                 self.fade_elapsed = self.fade_duration
                 self.fading = False
@@ -418,12 +418,12 @@ class CutScene1(Screen):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.manager.switch("menu")
 
-    def update(self, dt: float):
+    def update(self, timestamp: float):
         self._refresh_surface_metrics()
-        self.red_circle.update(dt)
-        self.blue_circle.update(dt)
-        self.green_circle.update(dt, self.yellow_circle.center_x, self.center_y)
-        self.yellow_circle.update(dt)
+        self.red_circle.update(timestamp)
+        self.blue_circle.update(timestamp)
+        self.green_circle.update(timestamp, self.yellow_circle.center_x, self.center_y)
+        self.yellow_circle.update(timestamp)
 
         if self.red_circle.finished and not self._blue_triggered:
             self.blue_circle.notify_red_finished()
@@ -460,14 +460,14 @@ def main():
     manager.switch("title")
 
     while manager.running:
-        dt = clock.tick(60) / 1000.0
+        timestamp = clock.tick(60) / 1000.0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 manager.quit()
             else:
                 manager.handle_event(event)
 
-        manager.update(dt)
+        manager.update(timestamp)
         manager.render(screen)
         pygame.display.flip()
 
