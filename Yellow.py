@@ -66,11 +66,16 @@ class TutorialScreen1(Screen):
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
         surface.fill(background_color)
-        main_text = "Oh no! Yellow has been abducted! Your goal is to find, rescue, and return Yellow safely home."
+        primary_text = "Oh no! Yellow has been abducted!"
+        secondary_text = "Your goal is to find, rescue, and return Yellow safely home."
         antialias = True
         text_color = (235, 200, 110)
-        text = self.font.render(main_text, antialias, text_color)
+        text = self.font.render(primary_text, antialias, text_color)
         center_coordinates = (surface.get_width()//2, surface.get_height()//2)
+        rect = text.get_rect(center=center_coordinates)
+        surface.blit(text, rect)
+        text = self.font.render(secondary_text, antialias, text_color)
+        center_coordinates = (surface.get_width()//2, surface.get_height()//2 + 50)
         rect = text.get_rect(center=center_coordinates)
         surface.blit(text, rect)
 
@@ -486,6 +491,9 @@ class CutScene1(Screen):
 
         self._blue_triggered = False
         self._green_triggered = False
+        self._yellow_fade_complete = False
+        self._post_yellow_wait = 2.0
+        self._post_yellow_timer = 0.0
 
     def _refresh_surface_metrics(self):
         surf = pygame.display.get_surface()
@@ -507,6 +515,8 @@ class CutScene1(Screen):
 
         self._blue_triggered = False
         self._green_triggered = False
+        self._yellow_fade_complete = False
+        self._post_yellow_timer = 0.0
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -529,6 +539,14 @@ class CutScene1(Screen):
 
         if self.green_circle.consume_fade_trigger():
             self.yellow_circle.start_fade()
+
+        if not self._yellow_fade_complete and not self.yellow_circle.visible and not self.yellow_circle.fading:
+            self._yellow_fade_complete = True
+            self._post_yellow_timer = 0.0
+        if self._yellow_fade_complete:
+            self._post_yellow_timer += timestamp
+            if self._post_yellow_timer >= self._post_yellow_wait:
+                self.manager.switch("TutorialScreen1")
 
     def render(self, surface: pygame.Surface):
         surface.fill((0, 0, 0))
