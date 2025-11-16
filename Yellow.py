@@ -281,62 +281,93 @@ class BlueCircle(CircleEffect):
 
 
 class GreenCircle(CircleEffect):
-    def __init__(self, radius: int, color: tuple[int, int, int], wait_after_blue: float, move_duration: float, fade_duration: float, offset: tuple[float, float] = (-30.0, -20.0)):
+    def __init__(
+        self,
+        radius: int,
+        color: tuple[int, int, int],
+        wait_after_blue: float,
+        move_duration: float,
+        fade_duration: float,
+        corner_inset: tuple[float, float] = (30.0, 30.0),
+        fade_in_duration: float = 0.5,
+    ):
         super().__init__(radius, color)
         self.wait_after_blue = wait_after_blue
         self.move_duration = move_duration
         self.fade_duration = fade_duration
-        self.offset = offset
+        self.corner_inset = corner_inset
+        self.fade_in_duration = fade_in_duration
+
         self.wait_elapsed = 0.0
         self.move_elapsed = 0.0
-        self.fade_elapsed = 0.0
+        self.fade_in_elapsed = 0.0
+        self.fade_out_elapsed = 0.0
         self.started = False
+        self.fading_in = False
         self.moving = False
         self.in_place = False
-        self.fading = False
+        self.fading_out = False
         self.finished = False
         self.can_start_sequence = False
         self.position: tuple[float, float] | None = None
         self.start_pos: tuple[float, float] | None = None
         self.target_pos: tuple[float, float] | None = None
+        self.corner_position: tuple[float, float] | None = None
         self._trigger_fade_event = False
 
     def reset(self, yellow_x: float, center_y: float):
+        inset_x, inset_y = self.corner_inset
+        corner_x = self.radius + inset_x
+        corner_y = self.radius + inset_y
+
         self.wait_elapsed = 0.0
         self.move_elapsed = 0.0
-        self.fade_elapsed = 0.0
+        self.fade_in_elapsed = 0.0
+        self.fade_out_elapsed = 0.0
         self.started = False
+        self.fading_in = False
         self.moving = False
         self.in_place = False
-        self.fading = False
+        self.fading_out = False
         self.finished = False
         self.can_start_sequence = False
         self.position = None
         self.start_pos = None
+        self.corner_position = (corner_x, corner_y)
         self.target_pos = (yellow_x, center_y)
         self._trigger_fade_event = False
 
     def notify_blue_finished(self):
         self.can_start_sequence = True
 
-    def update(self, timestamp: float, yellow_x: float, center_y: float):
+    def update(self, dt: float, yellow_x: float, center_y: float):
         if self.finished or not self.can_start_sequence:
             return
+
+        self.target_pos = (yellow_x, center_y)
+
         if not self.started:
-            self.wait_elapsed += timestamp
+            self.wait_elapsed += dt
             if self.wait_elapsed >= self.wait_after_blue:
                 self.started = True
-                offset_x, offset_y = self.offset
-                start_x = yellow_x + offset_x
-                start_y = center_y + offset_y
-                self.position = (start_x, start_y)
-                self.start_pos = self.position
-        elif not self.moving and not self.in_place:
-            self.target_pos = (yellow_x, center_y)
-            self.moving = True
-            self.move_elapsed = 0.0
+                self.position = self.corner_position
+                self.start_pos = self.corner_position
+                self.fading_in = True
+                self.fade_in_elapsed = 0.0
+        elif self.fading_in:
+            if self.fade_in_duration <= 0:
+                self.fading_in = False
+                self.moving = True
+                self.move_elapsed = 0.0
+            else:
+                self.fade_in_elapsed += dt
+                if self.fade_in_elapsed >= self.fade_in_duration:
+                    self.fade_in_elapsed = self.fade_in_duration
+                    self.fading_in = False
+                    self.moving = True
+                    self.move_elapsed = 0.0
         elif self.moving:
-            self.move_elapsed += timestamp
+            self.move_elapsed += dt
             t = min(1.0, self.move_elapsed / max(1e-6, self.move_duration))
             if self.start_pos and self.target_pos:
                 sx, sy = self.start_pos
@@ -346,14 +377,14 @@ class GreenCircle(CircleEffect):
                 self.position = self.target_pos
                 self.moving = False
                 self.in_place = True
-                self.fading = True
-                self.fade_elapsed = 0.0
+                self.fading_out = True
+                self.fade_out_elapsed = 0.0
                 self._trigger_fade_event = True
-        elif self.fading:
-            self.fade_elapsed += timestamp
-            if self.fade_elapsed >= self.fade_duration:
-                self.fade_elapsed = self.fade_duration
-                self.fading = False
+        elif self.fading_out:
+            self.fade_out_elapsed += dt
+            if self.fade_out_elapsed >= self.fade_duration:
+                self.fade_out_elapsed = self.fade_duration
+                self.fading_out = False
                 self.finished = True
 
     def consume_fade_trigger(self) -> bool:
@@ -365,9 +396,10 @@ class GreenCircle(CircleEffect):
     def render(self, surface: pygame.Surface):
         if not self.started or self.position is None:
             return
-        if self.fading and self.fade_duration > 0:
-            ratio = max(0.0, 1.0 - (self.fade_elapsed / max(1e-6, self.fade_duration)))
-            alpha = int(255 * ratio)
+        if self.fading_in and self.fade_in_duration > 0:
+            alpha = int(255 * min(1.0, self.fade_in_elapsed / max(1e-6, self.fade_in_duration)))
+        elif self.fading_out and self.fade_duration > 0:
+            alpha = int(255 * max(0.0, 1.0 - (self.fade_out_elapsed / max(1e-6, self.fade_duration))))
         else:
             alpha = 255
         self._draw_alpha_circle(surface, self.position, alpha)
@@ -477,4 +509,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
