@@ -305,8 +305,19 @@ class TutorialManaScreen3(Screen):
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
         self.action_image_size = self.action_image.get_size()
-        
-   
+        self.hint_delay = 6.0
+        self.hint_grow_duration = 1.0
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
+
+    def on_enter(self):
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
+
+    def update(self, timestamp: float):
+        self.hint_elapsed += timestamp
+        if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
+            self.hint_visible = True
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
         surface_width = surface.get_width()
