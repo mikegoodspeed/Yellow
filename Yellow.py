@@ -130,11 +130,13 @@ class YellowCircle(CircleEffect):
         self.center_x = 0.0
         self.fading = False
         self.fade_elapsed = 0.0
+        self.visible = True
 
     def reset(self, center_x: float):
         self.center_x = center_x
         self.fading = False
         self.fade_elapsed = 0.0
+        self.visible = True
 
     def start_fade(self):
         if not self.fading:
@@ -147,8 +149,11 @@ class YellowCircle(CircleEffect):
             if self.fade_elapsed >= self.fade_duration:
                 self.fade_elapsed = self.fade_duration
                 self.fading = False
+                self.visible = False
 
     def render(self, surface: pygame.Surface, center_y: float):
+        if not self.visible and not self.fading:
+            return
         if self.fading and self.fade_duration > 0:
             ratio = max(0.0, 1.0 - (self.fade_elapsed / max(1e-6, self.fade_duration)))
             alpha = int(255 * ratio)
@@ -314,6 +319,7 @@ class GreenCircle(CircleEffect):
         self.target_pos: tuple[float, float] | None = None
         self.corner_position: tuple[float, float] | None = None
         self._trigger_fade_event = False
+        self.visible = False
 
     def reset(self, yellow_x: float, center_y: float):
         inset_x, inset_y = self.corner_inset
@@ -336,6 +342,7 @@ class GreenCircle(CircleEffect):
         self.corner_position = (corner_x, corner_y)
         self.target_pos = (yellow_x, center_y)
         self._trigger_fade_event = False
+        self.visible = False
 
     def notify_blue_finished(self):
         self.can_start_sequence = True
@@ -353,6 +360,7 @@ class GreenCircle(CircleEffect):
                 self.position = self.corner_position
                 self.start_pos = self.corner_position
                 self.fading_in = True
+                self.visible = True
                 self.fade_in_elapsed = 0.0
         elif self.fading_in:
             if self.fade_in_duration <= 0:
@@ -386,6 +394,7 @@ class GreenCircle(CircleEffect):
                 self.fade_out_elapsed = self.fade_duration
                 self.fading_out = False
                 self.finished = True
+                self.visible = False
 
     def consume_fade_trigger(self) -> bool:
         if self._trigger_fade_event:
@@ -395,6 +404,8 @@ class GreenCircle(CircleEffect):
 
     def render(self, surface: pygame.Surface):
         if not self.started or self.position is None:
+            return
+        if not self.visible and not self.fading_in and not self.fading_out:
             return
         if self.fading_in and self.fade_in_duration > 0:
             alpha = int(255 * min(1.0, self.fade_in_elapsed / max(1e-6, self.fade_in_duration)))
