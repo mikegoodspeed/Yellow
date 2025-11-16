@@ -108,11 +108,8 @@ class TutorialTextScreen2(Screen):
         self.secondary_shown = False
         self.post_secondary_elapsed = 0.0
         self.post_secondary_delay = 3.0
-
-    # def handle_event(self, event: pygame.event.Event):
-    #     if event.type == pygame.KEYDOWN:
-    #         # any key moves to MenuScreen
-    #         self.manager.switch("MenuScreen")
+        self.primary_text = "To do so, you'll need to battle several other circlings"
+        self.secondary_text = "I'm going to teach you the basics now."
 
     def on_enter(self):
         self.elapsed = 0.0
@@ -131,16 +128,14 @@ class TutorialTextScreen2(Screen):
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
         surface.fill(background_color)
-        primary_text = "To do so, you'll need to battle several other circlings"
-        secondary_text = "I'm going to teach you the basics now."
         antialias = True
         text_color = (235, 200, 110)
-        text = self.font.render(primary_text, antialias, text_color)
+        text = self.font.render(self.primary_text, antialias, text_color)
         center_coordinates = (surface.get_width()//2, surface.get_height()//2)
         rect = text.get_rect(center=center_coordinates)
         surface.blit(text, rect)
         if self.secondary_shown:
-            text = self.font.render(secondary_text, antialias, text_color)
+            text = self.font.render(self.secondary_text, antialias, text_color)
             center_coordinates = (surface.get_width()//2, surface.get_height()//2 + 50)
             rect = text.get_rect(center=center_coordinates)
             surface.blit(text, rect)
@@ -150,21 +145,40 @@ class TutorialManaScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.primary_text = "Mana Primer"
+        self.primary_text = "Primary"
+        self.secondary_text = "Secondary"
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color('black')
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
+        bg_color = self.mana_image.get_at((0, 0))
+        self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
+        self.mana_image_size = self.mana_image.get_size()
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
-        text_surface = self.font.render(self.primary_text, True, self.text_color)
-        text_rect = text_surface.get_rect(midtop=(surface.get_width() // 2, 10))
-        surface.blit(text_surface, text_rect)
+        surface_width = surface.get_width()
+        surface_height = surface.get_height()
+        if self.primary_text:
+            text_surface = self.font.render(self.primary_text, True, self.text_color)
+            text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
+            surface.blit(text_surface, text_rect)
 
-        image_rect = self.mana_image.get_rect()
-        image_rect.left = 0
-        image_rect.centery = surface.get_height() // 2
-        surface.blit(self.mana_image, image_rect)
+        if self.secondary_text:
+            secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
+            secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 5))
+            surface.blit(secondary_surface, secondary_rect)
+
+        zone_height = surface.get_height() / 3.0
+        desired_height = zone_height * 0.8
+        orig_width, orig_height = self.mana_image_size
+        scale = min(1.0, desired_height / orig_height)
+        scaled_size = (max(1, int(orig_width * scale)), max(1, int(orig_height * scale)))
+        scaled_image = pygame.transform.smoothscale(self.mana_image, scaled_size)
+        image_rect = scaled_image.get_rect()
+        image_rect.right = surface.get_width() - 10
+        zone_top = surface.get_height() / 3.0
+        image_rect.top = int(zone_top + max(0.0, (zone_height - image_rect.height) / 2))
+        surface.blit(scaled_image, image_rect)
 
 
 
@@ -661,7 +675,7 @@ def main():
     manager.add("TutorialTextScreen1", TutorialTextScreen1(manager, font))
     manager.add("TutorialTextScreen2", TutorialTextScreen2(manager, font))
     manager.add("TutorialManaScreen", TutorialManaScreen(manager, font))
-    manager.switch("TitleScreen")
+    manager.switch("TutorialManaScreen")
 
     while manager.running:
         timestamp = clock.tick(60) / 1000.0
