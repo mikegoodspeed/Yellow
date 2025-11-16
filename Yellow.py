@@ -660,6 +660,7 @@ def main():
     manager.add("CutScene1", CutScene1(manager, font))
     manager.add("TutorialTextScreen1", TutorialTextScreen1(manager, font))
     manager.add("TutorialTextScreen2", TutorialTextScreen2(manager, font))
+    manager.add("TutorialManaScreen", TutorialManaScreen(manager, font))
     manager.switch("TitleScreen")
 
     while manager.running:
