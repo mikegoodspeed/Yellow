@@ -105,6 +105,9 @@ class TutorialTextScreen2(Screen):
         self.font = font
         self.elapsed = 0.0
         self.secondary_delay = 3.0
+        self.secondary_shown = False
+        self.post_secondary_elapsed = 0.0
+        self.post_secondary_delay = 3.0
 
     # def handle_event(self, event: pygame.event.Event):
     #     if event.type == pygame.KEYDOWN:
@@ -113,9 +116,17 @@ class TutorialTextScreen2(Screen):
 
     def on_enter(self):
         self.elapsed = 0.0
+        self.secondary_shown = False
+        self.post_secondary_elapsed = 0.0
 
     def update(self, timestamp: float):
         self.elapsed += timestamp
+        if not self.secondary_shown and self.elapsed >= self.secondary_delay:
+            self.secondary_shown = True
+        if self.secondary_shown:
+            self.post_secondary_elapsed += timestamp
+            if self.post_secondary_elapsed >= self.post_secondary_delay:
+                self.manager.switch("TutorialManaScreen")
 
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
@@ -128,11 +139,32 @@ class TutorialTextScreen2(Screen):
         center_coordinates = (surface.get_width()//2, surface.get_height()//2)
         rect = text.get_rect(center=center_coordinates)
         surface.blit(text, rect)
-        if self.elapsed >= self.secondary_delay:
+        if self.secondary_shown:
             text = self.font.render(secondary_text, antialias, text_color)
             center_coordinates = (surface.get_width()//2, surface.get_height()//2 + 50)
             rect = text.get_rect(center=center_coordinates)
             surface.blit(text, rect)
+
+
+class TutorialManaScreen(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+        self.primary_text = "Mana Primer"
+        self.text_color = (235, 200, 110)
+        self.background_color = pygame.Color('black')
+        self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
+
+    def render(self, surface: pygame.Surface):
+        surface.fill(self.background_color)
+        text_surface = self.font.render(self.primary_text, True, self.text_color)
+        text_rect = text_surface.get_rect(midtop=(surface.get_width() // 2, 10))
+        surface.blit(text_surface, text_rect)
+
+        image_rect = self.mana_image.get_rect()
+        image_rect.left = 0
+        image_rect.centery = surface.get_height() // 2
+        surface.blit(self.mana_image, image_rect)
 
 
 
