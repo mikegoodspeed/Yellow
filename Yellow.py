@@ -150,19 +150,46 @@ class TutorialManaScreen(Screen):
         self.secondary_text = "Mana will auto-regenerate over time."
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color('black')
+        self.next_hint_text = "Press Return/Enter to continue."
+        self.next_hint_color = (255, 255, 255)
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
         bg_color = self.mana_image.get_at((0, 0))
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
+        self.hint_delay = 3.0
+        self.hint_grow_duration = 1.0
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
 
+    def on_enter(self):
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
+
+    def update(self, timestamp: float):
+        self.hint_elapsed += timestamp
+        if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
+            self.hint_visible = True
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
         surface_width = surface.get_width()
         surface_height = surface.get_height()
+        text_rect = None
         if self.primary_text:
             text_surface = self.font.render(self.primary_text, True, self.text_color)
             text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
             surface.blit(text_surface, text_rect)
+
+        if self.hint_visible:
+            base_hint = self.font.render(self.next_hint_text, True, self.next_hint_color)
+            progress = min(1.0, max(0.0, (self.hint_elapsed - self.hint_delay) / max(1e-6, self.hint_grow_duration)))
+            scale = 0.05 + 0.95 * progress
+            hint_width = max(1, int(base_hint.get_width() * scale))
+            hint_height = max(1, int(base_hint.get_height() * scale))
+            hint_surface = pygame.transform.smoothscale(base_hint, (hint_width, hint_height))
+            hint_rect = hint_surface.get_rect()
+            top_offset = (text_rect.bottom + 5) if text_rect else 10
+            hint_rect.topleft = (10, top_offset)
+            surface.blit(hint_surface, hint_rect)
 
         if self.secondary_text:
             secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
