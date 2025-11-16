@@ -190,8 +190,8 @@ class TitleScreen(Screen):
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN:
-            # any key moves to menu
-            self.manager.switch("MenuScreen")
+            if event.key == pygame.K_RETURN:
+                self.manager.switch("MenuScreen")
 
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
@@ -675,7 +675,7 @@ def main():
     manager.add("TutorialTextScreen1", TutorialTextScreen1(manager, font))
     manager.add("TutorialTextScreen2", TutorialTextScreen2(manager, font))
     manager.add("TutorialManaScreen", TutorialManaScreen(manager, font))
-    manager.switch("TutorialManaScreen")
+    manager.switch("TitleScreen")
 
     while manager.running:
         timestamp = clock.tick(60) / 1000.0
