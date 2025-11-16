@@ -53,6 +53,27 @@ class Screen:
     def render(self, surface: pygame.Surface):
         pass
 
+class TutorialScreen1(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+
+    # def handle_event(self, event: pygame.event.Event):
+    #     if event.type == pygame.KEYDOWN:
+    #         # any key moves to MenuScreen
+    #         self.manager.switch("MenuScreen")
+
+    def render(self, surface: pygame.Surface):
+        background_color = pygame.Color('black')
+        surface.fill(background_color)
+        main_text = "Oh no! Yellow has been abducted! Your goal is to find, rescue, and return Yellow safely home."
+        antialias = True
+        text_color = (235, 200, 110)
+        text = self.font.render(main_text, antialias, text_color)
+        center_coordinates = (surface.get_width()//2, surface.get_height()//2)
+        rect = text.get_rect(center=center_coordinates)
+        surface.blit(text, rect)
+
 
 class TitleScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
@@ -62,7 +83,7 @@ class TitleScreen(Screen):
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN:
             # any key moves to menu
-            self.manager.switch("menu")
+            self.manager.switch("MenuScreen")
 
     def render(self, surface: pygame.Surface):
         background_color = pygame.Color('black')
@@ -91,7 +112,7 @@ class MenuScreen(Screen):
                 self.selected = (self.selected + 1) % len(self.options)
             elif event.key == pygame.K_RETURN:
                 if self.selected == 0:
-                    self.manager.switch("game")
+                    self.manager.switch("CutScene1")
                 else:
                     self.manager.quit()
 
@@ -527,10 +548,11 @@ def main():
     font = pygame.font.Font(None, 36)
 
     manager = ScreenManager()
-    manager.add("title", TitleScreen(manager, font))
-    manager.add("menu", MenuScreen(manager, font))
-    manager.add("game", CutScene1(manager, font))
-    manager.switch("title")
+    manager.add("TitleScreen", TitleScreen(manager, font))
+    manager.add("MenuScreen", MenuScreen(manager, font))
+    manager.add("CutScene1", CutScene1(manager, font))
+    manager.add("TutorialScreen1", TutorialScreen1(manager, font))
+    manager.switch("TitleScreen")
 
     while manager.running:
         timestamp = clock.tick(60) / 1000.0
