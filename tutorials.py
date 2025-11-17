@@ -248,6 +248,7 @@ class TutorialManaScreen3(Screen):
         self.primary_text = "Select Circular Storm to perform an action."
         self.tertiary_text = "Select 'Enact' to engage the action"
         self.secondary_text = "This will consume mana, and deal damage to your opponent."
+        self.enact_text = "Enact"
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
@@ -259,8 +260,6 @@ class TutorialManaScreen3(Screen):
         self._storm_rect = pygame.Rect(0, 0, 0, 0)
         self.storm_outline_color = (0, 120, 255)
         self.storm_outline_width = 4
-        self.enact_text = "Enact"
-        self.enact_color = (180, 180, 180)
 
 
 
@@ -313,8 +312,10 @@ class TutorialManaScreen3(Screen):
         if self._storm_rect.collidepoint(pygame.mouse.get_pos()):
             outline_rect = self._storm_rect.inflate(8, 8)
             pygame.draw.rect(surface, self.storm_outline_color, outline_rect, self.storm_outline_width)
-        enact_surface = self.font.render(self.enact_text, True, self.enact_color)
-        enact_rect = enact_surface.get_rect()
-        padding = 10
-        enact_rect.topleft = (padding, surface_height - padding - enact_rect.height)
-        surface.blit(enact_surface, enact_rect)
+        if self.enact_text:
+            enact_surface = self.font.render(self.enact_text, True, self.enact_color)
+            enact_rect = enact_surface.get_rect()
+            padding = 5
+            enact_rect.centerx = image_rect.centerx
+            enact_rect.top = image_rect.bottom + padding
+            surface.blit(enact_surface, enact_rect)
