@@ -100,8 +100,8 @@ class TutorialManaScreen1(Screen):
         bg_color = self.mana_image.get_at((0, 0))
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
-        self.hint_delay = 3.0
         self.hint_grow_duration = 1.0
+        self.hint_delay = 3.0
         self.hint_elapsed = 0.0
         self.hint_visible = False
 
@@ -246,34 +246,23 @@ class TutorialManaScreen3(Screen):
         super().__init__(manager)
         self.font = font
         self.primary_text = "Select Circular Storm to perform an action."
-        self.tertiary_text = "This will consume mana,"
-        self.secondary_text = "and hurt your opponent"
+        self.tertiary_text = "Select 'Enact' to engage the action"
+        self.secondary_text = "This will consume mana, and deal damage to your opponent."
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
-        self.next_hint_text = "Press Return/Enter to continue."
-        self.next_hint_color = (255, 255, 255)
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
         self.action_image = pygame.image.load("Circular_Storm.png").convert_alpha()
         bg_color = self.mana_image.get_at((0, 0))
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
         self.action_image_size = self.action_image.get_size()
-        self.hint_delay = 6.0
-        self.hint_grow_duration = 1.0
-        self.hint_elapsed = 0.0
-        self.hint_visible = False
         self._storm_rect = pygame.Rect(0, 0, 0, 0)
         self.storm_outline_color = (0, 120, 255)
         self.storm_outline_width = 4
+        self.enact_text = "Enact"
+        self.enact_color = (180, 180, 180)
 
-    def on_enter(self):
-        self.hint_elapsed = 0.0
-        self.hint_visible = False
 
-    def update(self, timestamp: float):
-        self.hint_elapsed += timestamp
-        if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
-            self.hint_visible = True
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
@@ -285,17 +274,6 @@ class TutorialManaScreen3(Screen):
             text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
             surface.blit(text_surface, text_rect)
 
-        if self.hint_visible:
-            base_hint = self.font.render(self.next_hint_text, True, self.next_hint_color)
-            progress = min(1.0, max(0.0, (self.hint_elapsed - self.hint_delay) / max(1e-6, self.hint_grow_duration)))
-            scale = 0.05 + 0.95 * progress
-            hint_width = max(1, int(base_hint.get_width() * scale))
-            hint_height = max(1, int(base_hint.get_height() * scale))
-            hint_surface = pygame.transform.smoothscale(base_hint, (hint_width, hint_height))
-            hint_rect = hint_surface.get_rect()
-            top_offset = (text_rect.bottom + 5) if text_rect else 10
-            hint_rect.topleft = (10, top_offset)
-            surface.blit(hint_surface, hint_rect)
 
         if self.secondary_text:
             secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
@@ -335,3 +313,8 @@ class TutorialManaScreen3(Screen):
         if self._storm_rect.collidepoint(pygame.mouse.get_pos()):
             outline_rect = self._storm_rect.inflate(8, 8)
             pygame.draw.rect(surface, self.storm_outline_color, outline_rect, self.storm_outline_width)
+        enact_surface = self.font.render(self.enact_text, True, self.enact_color)
+        enact_rect = enact_surface.get_rect()
+        padding = 10
+        enact_rect.topleft = (padding, surface_height - padding - enact_rect.height)
+        surface.blit(enact_surface, enact_rect)
