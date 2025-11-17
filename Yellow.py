@@ -13,6 +13,7 @@ from tutorials import (
 )
 
 
+
 def main():
     pygame.init()
     size = (800, 600)

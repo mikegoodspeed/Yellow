@@ -249,6 +249,7 @@ class TutorialManaScreen3(Screen):
         self.tertiary_text = "Select 'Enact' to engage the action"
         self.secondary_text = "This will consume mana, and deal damage to your opponent."
         self.enact_text = "Enact"
+        self.enact_color = (205, 205, 204)
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
         self.mana_image = pygame.image.load("Mana_Original.png").convert_alpha()
