@@ -259,8 +259,10 @@ class TutorialManaScreen3(Screen):
         self.mana_image_size = self.mana_image.get_size()
         self.action_image_size = self.action_image.get_size()
         self._storm_rect = pygame.Rect(0, 0, 0, 0)
-        self.storm_outline_color = (0, 120, 255)
+        self.storm_hover_color = (255, 215, 0)
+        self.storm_click_color = (0, 120, 255)
         self.storm_outline_width = 4
+        self.storm_clicked = False
 
 
 
@@ -310,9 +312,11 @@ class TutorialManaScreen3(Screen):
         storm_rect = storm_scaled.get_rect(center=(surface_width // 2, surface_height // 2))
         surface.blit(storm_scaled, storm_rect)
         self._storm_rect = storm_rect
-        if self._storm_rect.collidepoint(pygame.mouse.get_pos()):
+        hover = self._storm_rect.collidepoint(pygame.mouse.get_pos())
+        if self.storm_clicked or hover:
+            outline_color = self.storm_click_color if self.storm_clicked else self.storm_hover_color
             outline_rect = self._storm_rect.inflate(8, 8)
-            pygame.draw.rect(surface, self.storm_outline_color, outline_rect, self.storm_outline_width)
+            pygame.draw.rect(surface, outline_color, outline_rect, self.storm_outline_width)
         if self.enact_text:
             enact_surface = self.font.render(self.enact_text, True, self.enact_color)
             enact_rect = enact_surface.get_rect()
@@ -320,3 +324,8 @@ class TutorialManaScreen3(Screen):
             enact_rect.centerx = image_rect.centerx
             enact_rect.top = image_rect.bottom + padding
             surface.blit(enact_surface, enact_rect)
+
+    def handle_event(self, event: pygame.event.Event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self._storm_rect.collidepoint(event.pos):
+                self.storm_clicked = True
