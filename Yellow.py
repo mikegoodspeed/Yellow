@@ -4,13 +4,12 @@ import pygame
 
 from cutscene import CutScene1, ScreenManager
 from menu import MenuScreen, TitleScreen
-from tutorials import (
+from tutorial_mana import (
     TutorialManaScreen1,
     TutorialManaScreen2,
     TutorialManaScreen3,
-    TutorialTextScreen1,
-    TutorialTextScreen2,
 )
+from tutorial_text import TutorialTextScreen1, TutorialTextScreen2
 
 
 
