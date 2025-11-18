@@ -96,10 +96,13 @@ class TutorialManaScreen2(Screen):
         bg_color = self.mana_image.get_at((0, 0))
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
+        self.action_image = pygame.image.load("Circular_Storm.png").convert_alpha()
+        self.action_image_size = self.action_image.get_size()
         self.hint_delay = 6.0
         self.hint_grow_duration = 1.0
         self.hint_elapsed = 0.0
         self.hint_visible = False
+        self.action_image_size = self.action_image.get_size()
 
     def on_enter(self):
         self.hint_elapsed = 0.0
