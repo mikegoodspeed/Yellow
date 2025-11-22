@@ -191,6 +191,7 @@ class TutorialManaScreen3(Screen):
         self.hint_grow_duration = 1.0
         self.hint_elapsed = 0.0
         self.hint_visible = False
+        self._enact_rect: pygame.Rect | None = None
 
     def on_enter(self):
         self.hint_elapsed = 0.0
@@ -273,20 +274,23 @@ class TutorialManaScreen3(Screen):
                 self._render_flames(surface, storm_rect)
         else:
             self._storm_rect = pygame.Rect(0, 0, 0, 0)
-        if self.enact_text:
+        if self.enact_text and self.show_storm:
             enact_surface = self.font.render(self.enact_text, True, self.enact_color)
             enact_rect = enact_surface.get_rect()
             padding = 5
             enact_rect.centerx = image_rect.centerx
             enact_rect.top = image_rect.bottom + padding
             surface.blit(enact_surface, enact_rect)
+            self._enact_rect = pygame.Rect(enact_rect)
             if self.storm_clicked:
                 outline_rect = enact_rect.inflate(10, 6)
                 pygame.draw.rect(surface, self.storm_click_color, outline_rect, 2)
+        else:
+            self._enact_rect = None
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.show_storm and self._storm_rect.collidepoint(event.pos):
+            if self._enact_rect and self._enact_rect.collidepoint(event.pos):
                 self.storm_clicked = True
                 if self.enact_state == "idle":
                     self.enact_state = "waiting"
@@ -319,23 +323,8 @@ class TutorialManaScreen4(Screen):
         self.tertiary_text = "The blue node on the right supplies your energy."
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
-        self.hint_text = "Press Return/Enter to return to the title."
-        self.hint_color = (255, 255, 255)
-        self.hint_delay = 3.0
-        self.hint_grow_duration = 1.0
-        self.hint_elapsed = 0.0
-        self.hint_visible = False
         self.grey_color = (110, 110, 110)
         self.blue_color = (50, 100, 255)
-
-    def on_enter(self):
-        self.hint_elapsed = 0.0
-        self.hint_visible = False
-
-    def update(self, timestamp: float):
-        self.hint_elapsed += timestamp
-        if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
-            self.hint_visible = True
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
@@ -362,17 +351,6 @@ class TutorialManaScreen4(Screen):
         right_center = (int(surface_width * 0.75), surface_height // 2)
         pygame.draw.circle(surface, self.grey_color, left_center, circle_radius)
         pygame.draw.circle(surface, self.blue_color, right_center, circle_radius)
-
-        if self.hint_visible:
-            base_hint = self.font.render(self.hint_text, True, self.hint_color)
-            progress = min(1.0, max(0.0, (self.hint_elapsed - self.hint_delay) / max(1e-6, self.hint_grow_duration)))
-            scale = 0.05 + 0.95 * progress
-            hint_width = max(1, int(base_hint.get_width() * scale))
-            hint_height = max(1, int(base_hint.get_height() * scale))
-            hint_surface = pygame.transform.smoothscale(base_hint, (hint_width, hint_height))
-            hint_rect = hint_surface.get_rect()
-            hint_rect.bottomright = (surface_width - 10, surface_height - 10)
-            surface.blit(hint_surface, hint_rect)
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
