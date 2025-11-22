@@ -291,6 +291,8 @@ class TutorialManaScreen3(Screen):
                 if self.enact_state == "idle":
                     self.enact_state = "waiting"
                     self.enact_timer = 0.0
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and not self.show_storm:
+            self.manager.switch("TutorialManaScreen4")
 
     def _render_flames(self, surface: pygame.Surface, storm_rect: pygame.Rect):
         center = storm_rect.center
@@ -306,3 +308,73 @@ class TutorialManaScreen3(Screen):
             )
             width = 6 - idx
             pygame.draw.circle(surface, color, center, int(radius), max(1, width))
+
+
+class TutorialManaScreen4(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+        self.primary_text = "Watch each side of the battlefield."
+        self.secondary_text = "A grey node anchors the left flank."
+        self.tertiary_text = "The blue node on the right supplies your energy."
+        self.text_color = (235, 200, 110)
+        self.background_color = pygame.Color("black")
+        self.hint_text = "Press Return/Enter to return to the title."
+        self.hint_color = (255, 255, 255)
+        self.hint_delay = 3.0
+        self.hint_grow_duration = 1.0
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
+        self.grey_color = (110, 110, 110)
+        self.blue_color = (50, 100, 255)
+
+    def on_enter(self):
+        self.hint_elapsed = 0.0
+        self.hint_visible = False
+
+    def update(self, timestamp: float):
+        self.hint_elapsed += timestamp
+        if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
+            self.hint_visible = True
+
+    def render(self, surface: pygame.Surface):
+        surface.fill(self.background_color)
+        surface_width = surface.get_width()
+        surface_height = surface.get_height()
+        text_rect = None
+        if self.primary_text:
+            text_surface = self.font.render(self.primary_text, True, self.text_color)
+            text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
+            surface.blit(text_surface, text_rect)
+
+        if self.secondary_text:
+            secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
+            secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 45))
+            surface.blit(secondary_surface, secondary_rect)
+
+        if self.tertiary_text:
+            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
+            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 20))
+            surface.blit(tertiary_surface, tertiary_rect)
+
+        circle_radius = max(20, min(surface_width, surface_height) // 8)
+        left_center = (int(surface_width * 0.25), surface_height // 2)
+        right_center = (int(surface_width * 0.75), surface_height // 2)
+        pygame.draw.circle(surface, self.grey_color, left_center, circle_radius)
+        pygame.draw.circle(surface, self.blue_color, right_center, circle_radius)
+
+        if self.hint_visible:
+            base_hint = self.font.render(self.hint_text, True, self.hint_color)
+            progress = min(1.0, max(0.0, (self.hint_elapsed - self.hint_delay) / max(1e-6, self.hint_grow_duration)))
+            scale = 0.05 + 0.95 * progress
+            hint_width = max(1, int(base_hint.get_width() * scale))
+            hint_height = max(1, int(base_hint.get_height() * scale))
+            hint_surface = pygame.transform.smoothscale(base_hint, (hint_width, hint_height))
+            hint_rect = hint_surface.get_rect()
+            hint_rect.bottomright = (surface_width - 10, surface_height - 10)
+            surface.blit(hint_surface, hint_rect)
+
+    def handle_event(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            self.manager.switch("TitleScreen")
+                
