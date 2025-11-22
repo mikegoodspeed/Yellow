@@ -181,6 +181,12 @@ class TutorialManaScreen3(Screen):
         self.storm_click_color = (0, 120, 255)
         self.storm_outline_width = 4
         self.storm_clicked = False
+        self.enact_delay = 2.0
+        self.enact_flame_duration = 3.0
+        self.enact_timer = 0.0
+        self.enact_state = "idle"
+        self.show_storm = True
+        self.flame_colors = [(255, 180, 40), (255, 100, 20), (200, 40, 0)]
         self.hint_delay = 6.0
         self.hint_grow_duration = 1.0
         self.hint_elapsed = 0.0
@@ -189,11 +195,27 @@ class TutorialManaScreen3(Screen):
     def on_enter(self):
         self.hint_elapsed = 0.0
         self.hint_visible = False
+        self.enact_state = "idle"
+        self.enact_timer = 0.0
+        self.show_storm = True
+        self.storm_clicked = False
 
     def update(self, timestamp: float):
         self.hint_elapsed += timestamp
         if not self.hint_visible and self.hint_elapsed >= self.hint_delay:
             self.hint_visible = True
+        if self.enact_state == "waiting":
+            self.enact_timer += timestamp
+            if self.enact_timer >= self.enact_delay:
+                self.enact_state = "flames"
+                self.enact_timer = 0.0
+        elif self.enact_state == "flames":
+            self.enact_timer += timestamp
+            if self.enact_timer >= self.enact_flame_duration:
+                self.enact_state = "done"
+                self.enact_timer = 0.0
+                self.show_storm = False
+                self.storm_clicked = False
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
@@ -227,24 +249,30 @@ class TutorialManaScreen3(Screen):
         image_rect.top = int(zone_top + max(0.0, (zone_height - image_rect.height) / 2))
         surface.blit(scaled_image, image_rect)
 
-        storm_target_height = surface_height * 0.25
-        storm_width, storm_height = self.action_image_size
-        storm_scale = min(1.0, storm_target_height / storm_height)
-        storm_scaled = pygame.transform.smoothscale(
-            self.action_image,
-            (
-                max(1, int(storm_width * storm_scale)),
-                max(1, int(storm_height * storm_scale)),
-            ),
-        )
-        storm_rect = storm_scaled.get_rect(center=(surface_width // 2, surface_height // 2))
-        surface.blit(storm_scaled, storm_rect)
-        self._storm_rect = storm_rect
-        hover = self._storm_rect.collidepoint(pygame.mouse.get_pos())
-        if self.storm_clicked or hover:
-            outline_color = self.storm_click_color if self.storm_clicked else self.storm_hover_color
-            outline_rect = self._storm_rect.inflate(8, 8)
-            pygame.draw.rect(surface, outline_color, outline_rect, self.storm_outline_width)
+        storm_rect = pygame.Rect(0, 0, 0, 0)
+        if self.show_storm:
+            storm_target_height = surface_height * 0.25
+            storm_width, storm_height = self.action_image_size
+            storm_scale = min(1.0, storm_target_height / storm_height)
+            storm_scaled = pygame.transform.smoothscale(
+                self.action_image,
+                (
+                    max(1, int(storm_width * storm_scale)),
+                    max(1, int(storm_height * storm_scale)),
+                ),
+            )
+            storm_rect = storm_scaled.get_rect(center=(surface_width // 2, surface_height // 2))
+            surface.blit(storm_scaled, storm_rect)
+            self._storm_rect = storm_rect
+            hover = self._storm_rect.collidepoint(pygame.mouse.get_pos())
+            if self.storm_clicked or hover:
+                outline_color = self.storm_click_color if self.storm_clicked else self.storm_hover_color
+                outline_rect = self._storm_rect.inflate(8, 8)
+                pygame.draw.rect(surface, outline_color, outline_rect, self.storm_outline_width)
+            if self.enact_state == "flames":
+                self._render_flames(surface, storm_rect)
+        else:
+            self._storm_rect = pygame.Rect(0, 0, 0, 0)
         if self.enact_text:
             enact_surface = self.font.render(self.enact_text, True, self.enact_color)
             enact_rect = enact_surface.get_rect()
@@ -258,5 +286,23 @@ class TutorialManaScreen3(Screen):
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self._storm_rect.collidepoint(event.pos):
+            if self.show_storm and self._storm_rect.collidepoint(event.pos):
                 self.storm_clicked = True
+                if self.enact_state == "idle":
+                    self.enact_state = "waiting"
+                    self.enact_timer = 0.0
+
+    def _render_flames(self, surface: pygame.Surface, storm_rect: pygame.Rect):
+        center = storm_rect.center
+        base_radius = max(storm_rect.width, storm_rect.height) / 2
+        flame_progress = min(1.0, self.enact_timer / max(1e-6, self.enact_flame_duration))
+        for idx, color in enumerate(self.flame_colors):
+            radius = (
+                base_radius
+                + 12
+                + idx * 8
+                + int(20 * flame_progress)
+                + (idx % 2) * 4
+            )
+            width = 6 - idx
+            pygame.draw.circle(surface, color, center, int(radius), max(1, width))
