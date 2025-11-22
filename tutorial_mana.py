@@ -96,13 +96,10 @@ class TutorialManaScreen2(Screen):
         bg_color = self.mana_image.get_at((0, 0))
         self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
         self.mana_image_size = self.mana_image.get_size()
-        self.action_image = pygame.image.load("Circular_Storm.png").convert_alpha()
-        self.action_image_size = self.action_image.get_size()
         self.hint_delay = 6.0
         self.hint_grow_duration = 1.0
         self.hint_elapsed = 0.0
         self.hint_visible = False
-        self.action_image_size = self.action_image.get_size()
 
     def on_enter(self):
         self.hint_elapsed = 0.0
@@ -140,11 +137,6 @@ class TutorialManaScreen2(Screen):
             secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 5))
             surface.blit(secondary_surface, secondary_rect)
 
-        if self.tertiary_text:
-            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
-            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 30))
-            surface.blit(tertiary_surface, tertiary_rect)
-
         zone_height = surface.get_height() / 3.0
         desired_height = zone_height * 0.8
         orig_width, orig_height = self.mana_image_size
@@ -157,39 +149,14 @@ class TutorialManaScreen2(Screen):
         image_rect.top = int(zone_top + max(0.0, (zone_height - image_rect.height) / 2))
         surface.blit(scaled_image, image_rect)
 
-        storm_target_height = surface_height * 0.25
-        storm_width, storm_height = self.action_image_size
-        storm_scale = min(1.0, storm_target_height / storm_height)
-        storm_scaled = pygame.transform.smoothscale(
-            self.action_image,
-            (
-                max(1, int(storm_width * storm_scale)),
-                max(1, int(storm_height * storm_scale)),
-            ),
-        )
-        storm_rect = storm_scaled.get_rect(center=(surface_width // 2, surface_height // 2))
-        surface.blit(storm_scaled, storm_rect)
-        self._storm_rect = storm_rect
-        hover = self._storm_rect.collidepoint(pygame.mouse.get_pos())
-        if self.storm_clicked or hover:
-            outline_color = self.storm_click_color if self.storm_clicked else self.storm_hover_color
-            outline_rect = self._storm_rect.inflate(8, 8)
-            pygame.draw.rect(surface, outline_color, outline_rect, self.storm_outline_width)
-        if self.enact_text:
-            enact_surface = self.font.render(self.enact_text, True, self.enact_color)
-            enact_rect = enact_surface.get_rect()
-            padding = 5
-            enact_rect.centerx = image_rect.centerx
-            enact_rect.top = image_rect.bottom + padding
-            surface.blit(enact_surface, enact_rect)
-            if self.storm_clicked:
-                outline_rect = enact_rect.inflate(10, 6)
-                pygame.draw.rect(surface, self.storm_click_color, outline_rect, 2)
+        if self.tertiary_text:
+            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
+            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 30))
+            surface.blit(tertiary_surface, tertiary_rect)
 
     def handle_event(self, event: pygame.event.Event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self._storm_rect.collidepoint(event.pos):
-                self.storm_clicked = True
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            self.manager.switch("TutorialManaScreen3")
 
 
 class TutorialManaScreen3(Screen):
