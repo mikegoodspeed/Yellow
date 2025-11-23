@@ -341,17 +341,28 @@ class TutorialManaScreen4(Screen):
         self.text_delay = 0.5
         self.text_elapsed = 0.0
         self.text_visible = False
-        self.dmg_color = (220, 60, 90)
+        self.dmg_color = (0, 0, 0)
         self.dmg_font = pygame.font.Font(None, max(32, int(self.font.get_height() * 1.5)))
+        self.text_duration = 3.0
+        self._text_shown_elapsed = 0.0
+        self._text_finished = False
 
     def on_enter(self):
         self.text_elapsed = 0.0
+        self.text_visible = False
+        self._text_finished = False
 
     def update(self, timestamp: float):
-        if not self.text_visible:
+        if not self.text_visible and not self._text_finished:
             self.text_elapsed += timestamp
             if self.text_elapsed >= self.text_delay:
                 self.text_visible = True
+                self._text_shown_elapsed = 0.0
+        elif self.text_visible:
+            self._text_shown_elapsed += timestamp
+            if self._text_shown_elapsed >= self.text_duration:
+                self.text_visible = False
+                self._text_finished = True
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
