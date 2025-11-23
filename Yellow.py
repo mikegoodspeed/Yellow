@@ -9,6 +9,7 @@ from tutorial_mana import (
     TutorialManaScreen2,
     TutorialManaScreen3,
     TutorialManaScreen4,
+    TutorialManaScreen5,
 )
 from tutorial_text import TutorialTextScreen1, TutorialTextScreen2
 
@@ -32,6 +33,7 @@ def main():
     manager.add("TutorialManaScreen2", TutorialManaScreen2(manager, font))
     manager.add("TutorialManaScreen3", TutorialManaScreen3(manager, font))
     manager.add("TutorialManaScreen4", TutorialManaScreen4(manager, font))
+    manager.add("TutorialManaScreen5", TutorialManaScreen5(manager, font))
     manager.switch("TutorialManaScreen1")
 
     while manager.running:

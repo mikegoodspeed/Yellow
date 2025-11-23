@@ -397,3 +397,12 @@ class TutorialManaScreen4(Screen):
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             self.manager.switch("TitleScreen")
+
+
+class TutorialManaScreen5(TutorialManaScreen3):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager, font)
+        self.mana_image = pygame.image.load("Mana_5.png").convert_alpha()
+        bg_color = self.mana_image.get_at((0, 0))
+        self.mana_image.set_colorkey(bg_color, pygame.RLEACCEL)
+        self.mana_image_size = self.mana_image.get_size()
