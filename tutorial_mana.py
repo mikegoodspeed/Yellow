@@ -167,7 +167,6 @@ class TutorialManaScreen3(Screen):
         self.tertiary_text = "Select 'Enact' to engage the action"
         self.secondary_text = "This will consume mana, and deal damage to your opponent."
         self.enact_text = "Enact"
-        self.enact_color = (205, 205, 204)
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
         self.mana_image = pygame.image.load("Mana_10.png").convert_alpha()
@@ -191,6 +190,9 @@ class TutorialManaScreen3(Screen):
         self.hint_grow_duration = 1.0
         self.hint_elapsed = 0.0
         self.hint_visible = False
+        self.enact_base_color = (205, 205, 204)
+        self.enact_active_color = self.storm_click_color
+        self.enact_unlocked = False
         self._enact_rect: pygame.Rect | None = None
 
     def on_enter(self):
@@ -200,6 +202,7 @@ class TutorialManaScreen3(Screen):
         self.enact_timer = 0.0
         self.show_storm = True
         self.storm_clicked = False
+        self.enact_unlocked = False
 
     def update(self, timestamp: float):
         self.hint_elapsed += timestamp
@@ -275,7 +278,8 @@ class TutorialManaScreen3(Screen):
         else:
             self._storm_rect = pygame.Rect(0, 0, 0, 0)
         if self.enact_text and self.show_storm:
-            enact_surface = self.font.render(self.enact_text, True, self.enact_color)
+            enact_color = self.enact_active_color if self.enact_unlocked else self.enact_base_color
+            enact_surface = self.font.render(self.enact_text, True, enact_color)
             enact_rect = enact_surface.get_rect()
             padding = 5
             enact_rect.centerx = image_rect.centerx
@@ -290,8 +294,10 @@ class TutorialManaScreen3(Screen):
 
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self._enact_rect and self._enact_rect.collidepoint(event.pos):
+            if self.show_storm and self._storm_rect.collidepoint(event.pos):
                 self.storm_clicked = True
+                self.enact_unlocked = True
+            if self._enact_rect and self._enact_rect.collidepoint(event.pos) and self.enact_unlocked:
                 if self.enact_state == "idle":
                     self.enact_state = "waiting"
                     self.enact_timer = 0.0
