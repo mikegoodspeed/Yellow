@@ -331,9 +331,9 @@ class TutorialManaScreen4(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.primary_text = "Watch each side of the battlefield."
-        self.secondary_text = "A grey node anchors the left flank."
-        self.tertiary_text = "The blue node on the right supplies your energy."
+        self.primary_text = "You are the Blue Circling."
+        self.secondary_text = "Your opponent is the Grey Circling."
+        self.tertiary_text = "They have just taken 15 damage!"
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
         self.grey_color = (110, 110, 110)
@@ -346,7 +346,6 @@ class TutorialManaScreen4(Screen):
 
     def on_enter(self):
         self.text_elapsed = 0.0
-        self.text_visible = False
 
     def update(self, timestamp: float):
         if not self.text_visible:
