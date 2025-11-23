@@ -194,6 +194,9 @@ class TutorialManaScreen3(Screen):
         self.enact_active_color = self.storm_click_color
         self.enact_unlocked = False
         self._enact_rect: pygame.Rect | None = None
+        self.post_enact_delay = 1.0
+        self.post_enact_timer = 0.0
+        self.post_enact_started = False
 
     def on_enter(self):
         self.hint_elapsed = 0.0
@@ -220,6 +223,12 @@ class TutorialManaScreen3(Screen):
                 self.enact_timer = 0.0
                 self.show_storm = False
                 self.storm_clicked = False
+                self.post_enact_started = True
+                self.post_enact_timer = 0.0
+        if self.post_enact_started and not self.show_storm:
+            self.post_enact_timer += timestamp
+            if self.post_enact_timer >= self.post_enact_delay:
+                self.manager.switch("TutorialManaScreen4")
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
@@ -301,8 +310,6 @@ class TutorialManaScreen3(Screen):
                 if self.enact_state == "idle":
                     self.enact_state = "waiting"
                     self.enact_timer = 0.0
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and not self.show_storm:
-            self.manager.switch("TutorialManaScreen4")
 
     def _render_flames(self, surface: pygame.Surface, storm_rect: pygame.Rect):
         center = storm_rect.center
