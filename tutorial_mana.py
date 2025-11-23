@@ -338,12 +338,26 @@ class TutorialManaScreen4(Screen):
         self.background_color = pygame.Color("black")
         self.grey_color = (110, 110, 110)
         self.blue_color = (50, 100, 255)
+        self.text_delay = 0.5
+        self.text_elapsed = 0.0
+        self.text_visible = False
+        self.dmg_color = (220, 60, 90)
+        self.dmg_font = pygame.font.Font(None, max(32, int(self.font.get_height() * 1.5)))
+
+    def on_enter(self):
+        self.text_elapsed = 0.0
+        self.text_visible = False
+
+    def update(self, timestamp: float):
+        if not self.text_visible:
+            self.text_elapsed += timestamp
+            if self.text_elapsed >= self.text_delay:
+                self.text_visible = True
 
     def render(self, surface: pygame.Surface):
         surface.fill(self.background_color)
         surface_width = surface.get_width()
         surface_height = surface.get_height()
-        text_rect = None
         if self.primary_text:
             text_surface = self.font.render(self.primary_text, True, self.text_color)
             text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
@@ -365,7 +379,11 @@ class TutorialManaScreen4(Screen):
         pygame.draw.circle(surface, self.grey_color, left_center, circle_radius)
         pygame.draw.circle(surface, self.blue_color, right_center, circle_radius)
 
+        if self.text_visible:
+            text_surface = self.dmg_font.render("- 15", True, self.dmg_color)
+            text_rect = text_surface.get_rect(center=left_center)
+            surface.blit(text_surface, text_rect)
+
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             self.manager.switch("TitleScreen")
-                
