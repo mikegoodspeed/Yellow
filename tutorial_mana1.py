@@ -308,7 +308,7 @@ class TutorialManaScreen3(Screen):
                 self.enact_unlocked = True
             if self._enact_rect and self._enact_rect.collidepoint(event.pos) and self.enact_unlocked:
                 if self.enact_state == "idle":
-                    self.enact_state = "flames"
+                    self.enact_state = "waiting"
                     self.enact_timer = 0.0
 
     def _render_flames(self, surface: pygame.Surface, storm_rect: pygame.Rect):
@@ -327,13 +327,92 @@ class TutorialManaScreen3(Screen):
         pygame.draw.circle(surface, color, center, int(radius), max(1, width))
 
 
+class TutorialManaScreen4(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+        self.primary_text = "You are the Blue Circling."
+        self.secondary_text = "Your opponent is the Grey Circling."
+        self.tertiary_text = "They have just taken 15 damage!"
+        self.text_color = (235, 200, 110)
+        self.background_color = pygame.Color("black")
+        self.grey_color = (110, 110, 110)
+        self.blue_color = (50, 100, 255)
+        self.text_delay = 0.5
+        self.text_elapsed = 0.0
+        self.text_visible = False
+        self.dmg_color = (0, 0, 0)
+        self.dmg_font = pygame.font.Font(None, max(32, int(self.font.get_height() * 1.5)))
+        self.text_duration = 3.0
+        self._text_shown_elapsed = 0.0
+        self._text_finished = False
+        self._post_text_delay = 1.0
+        self._post_text_elapsed = 0.0
+        self._post_text_started = False
+
+    def on_enter(self):
+        self.text_elapsed = 0.0
+        self.text_visible = False
+        self._text_finished = False
+        self._post_text_started = False
+
+    def update(self, timestamp: float):
+        if not self.text_visible and not self._text_finished:
+            self.text_elapsed += timestamp
+            if self.text_elapsed >= self.text_delay:
+                self.text_visible = True
+                self._text_shown_elapsed = 0.0
+        elif self.text_visible:
+            self._text_shown_elapsed += timestamp
+            if self._text_shown_elapsed >= self.text_duration:
+                self.text_visible = False
+                self._text_finished = True
+        elif self._text_finished and not self._post_text_started:
+            self._post_text_started = True
+            self._post_text_elapsed = 0.0
+        elif self._post_text_started:
+            self._post_text_elapsed += timestamp
+            if self._post_text_elapsed >= self._post_text_delay:
+                self.manager.switch("TutorialManaScreen5")
+
+    def render(self, surface: pygame.Surface):
+        surface.fill(self.background_color)
+        surface_width = surface.get_width()
+        surface_height = surface.get_height()
+        if self.primary_text:
+            text_surface = self.font.render(self.primary_text, True, self.text_color)
+            text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
+            surface.blit(text_surface, text_rect)
+
+        if self.secondary_text:
+            secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
+            secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 45))
+            surface.blit(secondary_surface, secondary_rect)
+
+        if self.tertiary_text:
+            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
+            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 20))
+            surface.blit(tertiary_surface, tertiary_rect)
+
+        circle_radius = max(20, min(surface_width, surface_height) // 8)
+        left_center = (int(surface_width * 0.25), surface_height // 2)
+        right_center = (int(surface_width * 0.75), surface_height // 2)
+        pygame.draw.circle(surface, self.grey_color, left_center, circle_radius)
+        pygame.draw.circle(surface, self.blue_color, right_center, circle_radius)
+
+        if self.text_visible:
+            text_surface = self.dmg_font.render("- 15", True, self.dmg_color)
+            text_rect = text_surface.get_rect(center=left_center)
+            surface.blit(text_surface, text_rect)
+
+    def handle_event(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            self.manager.switch("TitleScreen")
+
 class TutorialManaScreen5(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.primary_text = "Select Circular Storm to perform an action."
-        self.tertiary_text = "Select 'Enact' to engage the action"
-        self.secondary_text = "This will consume mana, and deal damage to your opponent."
         self.enact_text = "Enact"
         self.text_color = (235, 200, 110)
         self.background_color = pygame.Color("black")
@@ -476,7 +555,7 @@ class TutorialManaScreen5(Screen):
                 self.enact_unlocked = True
             if self._enact_rect and self._enact_rect.collidepoint(event.pos) and self.enact_unlocked:
                 if self.enact_state == "idle":
-                    self.enact_state = "flames"
+                    self.enact_state = "waiting"
                     self.enact_timer = 0.0
 
     def _render_flames(self, surface: pygame.Surface, storm_rect: pygame.Rect):
@@ -493,85 +572,3 @@ class TutorialManaScreen5(Screen):
             )
             width = 6 - idx
             pygame.draw.circle(surface, color, center, int(radius), max(1, width))
-
-class TutorialManaScreen4(Screen):
-    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
-        super().__init__(manager)
-        self.font = font
-        self.primary_text = "You are the Blue Circling."
-        self.secondary_text = "Your opponent is the Grey Circling."
-        self.tertiary_text = "They have just taken 15 damage!"
-        self.text_color = (235, 200, 110)
-        self.background_color = pygame.Color("black")
-        self.grey_color = (110, 110, 110)
-        self.blue_color = (50, 100, 255)
-        self.text_delay = 0.5
-        self.text_elapsed = 0.0
-        self.text_visible = False
-        self.dmg_color = (0, 0, 0)
-        self.dmg_font = pygame.font.Font(None, max(32, int(self.font.get_height() * 1.5)))
-        self.text_duration = 3.0
-        self._text_shown_elapsed = 0.0
-        self._text_finished = False
-        self._post_text_delay = 1.0
-        self._post_text_elapsed = 0.0
-        self._post_text_started = False
-
-    def on_enter(self):
-        self.text_elapsed = 0.0
-        self.text_visible = False
-        self._text_finished = False
-        self._post_text_started = False
-
-    def update(self, timestamp: float):
-        if not self.text_visible and not self._text_finished:
-            self.text_elapsed += timestamp
-            if self.text_elapsed >= self.text_delay:
-                self.text_visible = True
-                self._text_shown_elapsed = 0.0
-        elif self.text_visible:
-            self._text_shown_elapsed += timestamp
-            if self._text_shown_elapsed >= self.text_duration:
-                self.text_visible = False
-                self._text_finished = True
-        elif self._text_finished and not self._post_text_started:
-            self._post_text_started = True
-            self._post_text_elapsed = 0.0
-        elif self._post_text_started:
-            self._post_text_elapsed += timestamp
-            if self._post_text_elapsed >= self._post_text_delay:
-                self.manager.switch("TutorialManaScreen5")
-
-    def render(self, surface: pygame.Surface):
-        surface.fill(self.background_color)
-        surface_width = surface.get_width()
-        surface_height = surface.get_height()
-        if self.primary_text:
-            text_surface = self.font.render(self.primary_text, True, self.text_color)
-            text_rect = text_surface.get_rect(midtop=(surface_width // 2, 5))
-            surface.blit(text_surface, text_rect)
-
-        if self.secondary_text:
-            secondary_surface = self.font.render(self.secondary_text, True, self.text_color)
-            secondary_rect = secondary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 45))
-            surface.blit(secondary_surface, secondary_rect)
-
-        if self.tertiary_text:
-            tertiary_surface = self.font.render(self.tertiary_text, True, self.text_color)
-            tertiary_rect = tertiary_surface.get_rect(midbottom=(surface_width // 2, surface_height - 20))
-            surface.blit(tertiary_surface, tertiary_rect)
-
-        circle_radius = max(20, min(surface_width, surface_height) // 8)
-        left_center = (int(surface_width * 0.25), surface_height // 2)
-        right_center = (int(surface_width * 0.75), surface_height // 2)
-        pygame.draw.circle(surface, self.grey_color, left_center, circle_radius)
-        pygame.draw.circle(surface, self.blue_color, right_center, circle_radius)
-
-        if self.text_visible:
-            text_surface = self.dmg_font.render("- 15", True, self.dmg_color)
-            text_rect = text_surface.get_rect(center=left_center)
-            surface.blit(text_surface, text_rect)
-
-    def handle_event(self, event: pygame.event.Event):
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-            self.manager.switch("TitleScreen")
