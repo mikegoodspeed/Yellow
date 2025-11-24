@@ -4,7 +4,7 @@ import pygame
 
 from cutscene import CutScene1, ScreenManager
 from menu import MenuScreen, TitleScreen
-from tutorial_mana import (
+from tutorial_mana1 import (
     TutorialManaScreen1,
     TutorialManaScreen2,
     TutorialManaScreen3,
