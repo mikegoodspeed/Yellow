@@ -1,57 +1,8 @@
 import sys
+
 import pygame
 
-
-class ScreenManager:
-    def __init__(self):
-        self.screens: dict[str, "Screen"] = {}
-        self.active: "Screen" | None = None
-        self.running: bool = True
-
-    def add(self, name: str, screen: "Screen"):
-        self.screens[name] = screen
-
-    def switch(self, name: str):
-        if self.active:
-            self.active.on_exit()
-        self.active = self.screens.get(name)
-        if self.active:
-            self.active.on_enter()
-
-    def handle_event(self, event: pygame.event.Event):
-        if self.active:
-            self.active.handle_event(event)
-
-    def update(self, dt: float):
-        if self.active:
-            self.active.update(dt)
-
-    def render(self, surface: pygame.Surface):
-        if self.active:
-            self.active.render(surface)
-
-    def quit(self):
-        self.running = False
-
-
-class Screen:
-    def __init__(self, manager: ScreenManager):
-        self.manager = manager
-
-    def on_enter(self):
-        pass
-
-    def on_exit(self):
-        pass
-
-    def handle_event(self, event: pygame.event.Event):
-        pass
-
-    def update(self, dt: float):
-        pass
-
-    def render(self, surface: pygame.Surface):
-        pass
+from cutscene import Screen, ScreenManager
 
 
 class TitleScreen(Screen):
