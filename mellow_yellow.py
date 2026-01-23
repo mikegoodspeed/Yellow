@@ -31,7 +31,7 @@ class MenuScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.options = ["Start Game", "Quit"]
+        self.options = ["Start Game", "Credits", "Quit"]
         self.selected = 0
 
     def handle_event(self, event):
@@ -43,6 +43,8 @@ class MenuScreen(Screen):
             elif event.key == pygame.K_RETURN:
                 if self.selected == 0:
                     self.manager.switch("game")
+                elif self.selected == 1:
+                    self.manager.switch("credits")
                 else:
                     self.manager.quit()
 
@@ -282,6 +284,28 @@ class EndScreen(Screen):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             self.manager.switch("game")
 
+
+class CreditsScreen(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+
+    def handle_event(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.manager.switch("menu")
+
+    def render(self, surface: pygame.Surface):
+        surface.fill(pygame.Color("black"))
+        title = self.font.render("Credits", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2 - 40))
+        surface.blit(title, title_rect)
+        credit_text = self.font.render("Created by Gemmo03", True, (235, 200, 110))
+        credit_rect = credit_text.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2 + 20))
+        surface.blit(credit_text, credit_rect)
+        hint = self.font.render("Press Esc to return", True, (180, 180, 180))
+        hint_rect = hint.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2 + 80))
+        surface.blit(hint, hint_rect)
+
 def main():
     pygame.init()
     size = (800, 600)
@@ -295,6 +319,7 @@ def main():
     manager.add("menu", MenuScreen(manager, font))
     manager.add("game", GameScreen(manager, font))
     manager.add("end", EndScreen(manager, font))
+    manager.add("credits", CreditsScreen(manager, font))
     manager.switch("title")
 
     while manager.running:
