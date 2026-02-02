@@ -3,6 +3,7 @@ import sys
 import pygame
 
 from cutscene import Screen, ScreenManager
+from snake import SnakeScreen
 
 
 class TitleScreen(Screen):
@@ -31,7 +32,7 @@ class MenuScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.options = ["Start Game", "Quit"]
+        self.options = ["Start Game", "Snake", "Quit"]
         self.selected = 0
 
     def handle_event(self, event):
@@ -43,6 +44,8 @@ class MenuScreen(Screen):
             elif event.key == pygame.K_RETURN:
                 if self.selected == 0:
                     self.manager.switch("game")
+                elif self.selected == 1:
+                    self.manager.switch("snake")
                 else:
                     self.manager.quit()
 
@@ -294,6 +297,7 @@ def main():
     manager.add("title", TitleScreen(manager, font))
     manager.add("menu", MenuScreen(manager, font))
     manager.add("game", GameScreen(manager, font))
+    manager.add("snake", SnakeScreen(manager, font))
     manager.add("end", EndScreen(manager, font))
     manager.switch("title")
 
