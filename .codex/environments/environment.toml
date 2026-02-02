@@ -6,9 +6,9 @@ name = "Hack"
 script = ""
 
 [[actions]]
-name = "Run"
+name = "Run mellow_yellow"
 icon = "run"
 command = '''
-source /Users/mike/Developer/Hack/.venv/bin/activate
+source .venv/bin/activate
 python mellow_yellow.py
 '''
