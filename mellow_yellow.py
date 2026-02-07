@@ -32,7 +32,7 @@ class MenuScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
         self.font = font
-        self.options = ["Start Game", "Snake", "Quit"]
+        self.options = ["Start Game", "Snake", "Credits", "Quit"]
         self.selected = 0
 
     def handle_event(self, event):
@@ -46,6 +46,8 @@ class MenuScreen(Screen):
                     self.manager.switch("game")
                 elif self.selected == 1:
                     self.manager.switch("snake")
+                elif self.selected == 2:
+                    self.manager.switch("credits")
                 else:
                     self.manager.quit()
 
@@ -255,6 +257,31 @@ class GameScreen(Screen):
         return False
 
 
+class CreditsScreen(Screen):
+    def __init__(self, manager: ScreenManager, font: pygame.font.Font):
+        super().__init__(manager)
+        self.font = font
+
+    def handle_event(self, event: pygame.event.Event):
+        if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+            self.manager.switch("menu")
+
+    def render(self, surface: pygame.Surface):
+        surface.fill((20, 20, 30))
+        lines = [
+            "Credits",
+            "Developer: Wesley",
+            "Special thanks to Dad and Codex",
+            "Press Enter or Esc to return",
+        ]
+        colors = [(255, 230, 130), (230, 230, 230), (210, 210, 210), (170, 170, 170)]
+        start_y = surface.get_height() // 2 - 90
+        for i, line in enumerate(lines):
+            text = self.font.render(line, True, colors[i])
+            rect = text.get_rect(center=(surface.get_width() // 2, start_y + i * 60))
+            surface.blit(text, rect)
+
+
 class EndScreen(Screen):
     def __init__(self, manager: ScreenManager, font: pygame.font.Font):
         super().__init__(manager)
@@ -298,6 +325,7 @@ def main():
     manager.add("menu", MenuScreen(manager, font))
     manager.add("game", GameScreen(manager, font))
     manager.add("snake", SnakeScreen(manager, font))
+    manager.add("credits", CreditsScreen(manager, font))
     manager.add("end", EndScreen(manager, font))
     manager.switch("title")
 
