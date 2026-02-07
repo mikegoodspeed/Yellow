@@ -3,12 +3,25 @@ version = 1
 name = "Hack"
 
 [setup]
-script = ""
+script = '''
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install pygame
+'''
 
 [[actions]]
 name = "Run mellow_yellow"
 icon = "run"
 command = '''
-source .venv/bin/activate
+[[ -z "$VIRTUAL_ENV" && -f .venv/bin/activate ]] && source .venv/bin/activate
 python mellow_yellow.py
+'''
+
+[[actions]]
+name = "Run Yellow.py"
+icon = "run"
+command = '''
+[[ -z "$VIRTUAL_ENV" && -f .venv/bin/activate ]] && source .venv/bin/activate
+python Yellow.py
 '''
